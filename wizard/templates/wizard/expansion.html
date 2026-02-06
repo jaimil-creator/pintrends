@@ -1,0 +1,87 @@
+{% extends 'wizard/base.html' %}
+
+{% block title %}Step 4: Expand Keywords - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto pb-24 px-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 pt-6 gap-4">
+        <div class="text-center md:text-left">
+            <h2 class="text-3xl font-bold mb-1">AI Keyword Expansion</h2>
+            <p class="text-gray-500">Combinations of your keywords and suggestions</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <button
+                class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-full transition-colors flex items-center gap-2"
+                hx-get="{% url 'wizard:expand_keywords_htmx' project.id %}" hx-target="#expansion-container"
+                hx-swap="innerHTML" hx-indicator="#loading-spinner">
+                <i class="bi bi-stars"></i> Expand with AI
+            </button>
+            <form method="post" class="inline-block">
+                {% csrf_token %}
+                <button type="submit" name="proceed" value="1"
+                    class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-md transition-transform transform active:scale-95 flex items-center gap-2">
+                    Generate Content <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats / Info -->
+    <div class="flex gap-8 mb-10 justify-center md:justify-start">
+        <div class="flex items-center gap-3">
+            <div class="bg-gray-100 rounded-full w-14 h-14 flex items-center justify-center">
+                <span class="text-xl font-bold">{{ base_keywords|length }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0 font-bold text-gray-900">Base Keywords</h6>
+                <small class="text-gray-500">Starting points</small>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="bg-gray-100 rounded-full w-14 h-14 flex items-center justify-center">
+                <span class="text-xl font-bold">{{ suggestions|length }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0 font-bold text-gray-900">Suggestions</h6>
+                <small class="text-gray-500">Modifiers</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: block;
+        }
+    </style>
+    <div id="loading-spinner" class="htmx-indicator w-full text-center py-20">
+        <div class="inline-flex items-center justify-center animate-spin">
+            <div class="w-12 h-12 border-4 border-gray-200 border-t-pinterest-red rounded-full"></div>
+        </div>
+        <p class="mt-4 text-gray-500 font-bold text-lg">AI is mixing and matching...</p>
+    </div>
+
+    <!-- Results -->
+    <div id="expansion-container">
+        {% include 'wizard/partials/expanded_list.html' %}
+    </div>
+
+    <!-- Footer Nav -->
+    <div
+        class="fixed bottom-0 left-0 right-0 p-6 pointer-events-none z-40 bg-gradient-to-t from-white/80 to-transparent">
+        <div class="max-w-[1600px] mx-auto">
+            <a href="{% url 'wizard:suggestion_fetch' project.id %}"
+                class="pointer-events-auto inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg border border-gray-200 transition-transform active:scale-95">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

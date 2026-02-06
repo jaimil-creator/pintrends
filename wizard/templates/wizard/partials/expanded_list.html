@@ -1,0 +1,78 @@
+{% if expanded_keywords %}
+<div class="flex justify-between items-center mb-6">
+    <h5 class="text-xl font-bold">Generated {{ expanded_keywords|length }} Phrases</h5>
+</div>
+
+{% regroup expanded_keywords by base_keyword as keyword_groups %}
+
+<div class="space-y-12">
+    {% for group in keyword_groups %}
+    <div class="keyword-group">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+            <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-500 font-bold text-lg">
+                {{ forloop.counter }}
+            </span>
+            <div>
+                <h5 class="text-xl font-bold text-gray-900">{{ group.grouper }}</h5>
+                <p class="text-sm text-gray-500">{{ group.list|length }} search phrases extracted</p>
+            </div>
+        </div>
+
+        <div class="masonry-grid w-full">
+            <!-- Grid Sizer -->
+            <div class="grid-sizer w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%]"></div>
+            <div class="gutter-sizer w-[2%]"></div>
+
+            {% for kw in group.list %}
+            <div class="grid-item w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%] mb-4 px-1">
+                <div class="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 p-6 h-full flex flex-col justify-between border-2 {% if kw.selected %}border-green-500{% else %}border-transparent hover:border-gray-200{% endif %} cursor-pointer group relative"
+                    hx-post="{% url 'wizard:toggle_expanded_keyword' project.id kw.id %}" hx-swap="none"
+                    onclick="this.classList.toggle('border-green-500'); this.classList.toggle('border-transparent'); this.querySelector('.check-icon').classList.toggle('scale-100'); this.querySelector('.check-icon').classList.toggle('scale-0');">
+
+                    <!-- Selection Indicator -->
+                    <div
+                        class="absolute top-4 right-4 w-6 h-6 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center transition-colors {% if kw.selected %}border-green-500 bg-green-500{% endif %}">
+                        <i
+                            class="bi bi-check text-white transform transition-transform duration-200 check-icon {% if kw.selected %}scale-100{% else %}scale-0{% endif %}"></i>
+                    </div>
+
+                    <div class="mb-4 pr-6">
+                        <h5 class="font-bold text-gray-900 leading-snug break-words">{{ kw.keyword }}</h5>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <small class="text-xs text-gray-500 font-medium">Potential</small>
+                            <small class="text-xs font-bold text-green-600">{{ kw.score }}%</small>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-gradient-to-r from-green-400 to-green-600 h-1.5 rounded-full"
+                                style="width: {{ kw.score }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-16">
+    <div
+        class="inline-flex items-center justify-center w-24 h-24 bg-green-50 rounded-full mb-6 text-green-600 text-5xl shadow-sm">
+        <i class="bi bi-stars"></i>
+    </div>
+    <h4 class="text-2xl font-bold text-gray-900 mb-2">Let AI do the work</h4>
+    <p class="text-gray-500 mb-8 max-w-md mx-auto">Click "Expand with AI" to generate high-potential search phrases.</p>
+
+    <button
+        class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-2 mx-auto"
+        hx-get="{% url 'wizard:expand_keywords_htmx' project.id %}" hx-target="#expansion-container" hx-swap="innerHTML"
+        hx-indicator="#loading-spinner">
+        <i class="bi bi-stars"></i> Expand with AI
+    </button>
+</div>
+{% endif %}

@@ -1,0 +1,45 @@
+<div class="p-8">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-pinterest-red/10 flex items-center justify-center text-pinterest-red">
+                <i class="bi bi-pin-angle-fill text-xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900">Edit Pin</h3>
+        </div>
+        <button onclick="document.getElementById('edit-modal').classList.add('hidden')"
+            class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors">
+            <i class="bi bi-x-lg text-xl"></i>
+        </button>
+    </div>
+
+    <form hx-post="{% url 'wizard:update_pin' pin.id %}" hx-target="#content-container" hx-swap="innerHTML"
+        class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Pin Title -->
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Pin Title</label>
+            <input type="text" name="title" value="{{ pin.title }}" required
+                class="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-pinterest-red focus:ring-4 focus:ring-pinterest-red/20 focus:outline-none transition-all">
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
+            <textarea name="description" rows="5" required
+                class="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-pinterest-red focus:ring-4 focus:ring-pinterest-red/20 focus:outline-none transition-all resize-none">{{ pin.description }}</textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button type="button" onclick="document.getElementById('edit-modal').classList.add('hidden')"
+                class="px-6 py-3 rounded-full font-bold text-gray-700 hover:bg-gray-100 transition-colors">
+                Cancel
+            </button>
+            <button type="submit"
+                class="px-6 py-3 rounded-full font-bold bg-pinterest-red hover:bg-[#ad081b] text-white transition-colors shadow-lg">
+                <i class="bi bi-check-lg mr-1"></i> Save Changes
+            </button>
+        </div>
+    </form>
+</div>

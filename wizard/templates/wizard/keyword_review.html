@@ -1,0 +1,109 @@
+{% extends 'wizard/base.html' %}
+
+{% block title %}Step 2: Review Keywords - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto pb-24 px-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 pt-6 gap-4">
+        <div class="text-center md:text-left">
+            <h2 class="text-3xl font-bold mb-1">Review Keywords</h2>
+            <p class="text-gray-500">Refine your selection for {{ project.name }}</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <form method="post" class="inline-block">
+                {% csrf_token %}
+                <button type="submit" name="proceed" value="1"
+                    class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-md transition-transform transform active:scale-95 flex items-center gap-2">
+                    Fetch Suggestions <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manual Add -->
+    <div class="flex justify-center mb-10">
+        <div
+            class="bg-white p-2 pl-4 rounded-full shadow-md border border-gray-100 flex items-center w-full max-w-2xl transition-shadow hover:shadow-lg focus-within:shadow-lg focus-within:ring-2 focus-within:ring-gray-100">
+            <form method="post" class="flex flex-grow items-center gap-2 m-0 w-full">
+                {% csrf_token %}
+                <i class="bi bi-search text-gray-400 text-xl pl-2"></i>
+                <input type="text" name="manual_keyword"
+                    class="flex-grow bg-transparent border-none focus:ring-0 text-gray-800 placeholder-gray-400 text-lg px-2 outline-none"
+                    placeholder="Add a custom keyword..." autocomplete="off">
+                <button type="submit"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-2.5 px-6 rounded-full transition-colors">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Masonry Grid -->
+    <div class="masonry-grid w-full">
+        <!-- Grid Sizer -->
+        <div class="grid-sizer w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%]"></div>
+        <div class="gutter-sizer w-[2%]"></div>
+
+        {% for kw in selected_keywords %}
+        <div class="grid-item w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%] mb-4 px-1" id="chip-{{ kw.id }}">
+            <div
+                class="group relative bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-default">
+
+                <!-- Visual Placeholder -->
+                <div
+                    class="aspect-[3/4] w-full bg-gray-100 relative flex flex-col items-center justify-center p-6 text-center">
+                    <!-- Random light colored backgrounds -->
+                    <div class="absolute inset-0 opacity-10 bg-gradient-to-tr from-gray-200 to-gray-400"></div>
+
+                    <h1 class="text-6xl font-black text-gray-200 select-none">
+                        {{ kw.keyword|slice:":1"|upper }}
+                    </h1>
+
+                    <div class="relative z-10 mt-4">
+                        <h3 class="font-bold text-gray-900 leading-tight mb-1 break-words">
+                            {{ kw.keyword }}
+                        </h3>
+                        <span class="text-xs text-gray-500 font-medium">
+                            {% if kw.trend_score %}Score: {{ kw.trend_score }}{% else %}Manual{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Dark Overlay & Remove Button (Appears on Hover) -->
+                <div
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-start justify-end p-3 z-20">
+                    <button
+                        class="bg-white hover:bg-gray-100 text-pinterest-red font-bold py-2 px-4 rounded-full shadow-lg transform transition-transform scale-90 group-hover:scale-100 flex items-center gap-2"
+                        hx-delete="{% url 'wizard:remove_keyword' project.id kw.id %}" hx-target="#chip-{{ kw.id }}"
+                        hx-swap="outerHTML">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="w-full text-center py-20 col-span-full">
+            <div
+                class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4 text-gray-400 text-3xl">
+                <i class="bi bi-tag"></i>
+            </div>
+            <h4 class="text-xl font-bold text-gray-900 mb-2">No keywords selected yet.</h4>
+            <a href="{% url 'wizard:trend_fetch' project.id %}"
+                class="inline-block mt-4 text-pinterest-gray hover:text-pinterest-dark font-medium underline underline-offset-4">
+                Back to Trends
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Floating Back Button -->
+    <div
+        class="fixed bottom-0 left-0 right-0 p-6 pointer-events-none z-40 bg-gradient-to-t from-white/80 to-transparent">
+        <div class="max-w-[1600px] mx-auto">
+            <a href="{% url 'wizard:trend_fetch' project.id %}"
+                class="pointer-events-auto inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg border border-gray-200 transition-transform active:scale-95">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

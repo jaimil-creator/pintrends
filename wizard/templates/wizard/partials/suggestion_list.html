@@ -1,0 +1,64 @@
+{% if suggestions %}
+<div class="flex justify-between items-center mb-6">
+    <h5 class="text-xl font-bold">Found {{ suggestions|length }} suggestions</h5>
+</div>
+
+<div class="masonry-grid w-full">
+    <!-- Grid Sizer -->
+    <div class="grid-sizer w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%]"></div>
+    <div class="gutter-sizer w-[2%]"></div>
+
+    {% for s in suggestions %}
+    <div class="grid-item w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%] mb-4 px-1">
+        <div
+            class="group relative bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col justify-between p-6 border border-transparent hover:border-gray-200">
+            <div>
+                <h5 class="font-bold text-gray-900 mb-2 leading-tight">{{ s.suggestion }}</h5>
+                <span
+                    class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                    <i class="bi bi-arrow-return-right"></i> {{ s.base_keyword }}
+                </span>
+            </div>
+            <!-- Decorative icon -->
+            <div
+                class="text-right mt-4 opacity-10 group-hover:opacity-100 group-hover:text-pinterest-red transition-all duration-300">
+                <i class="bi bi-lightbulb-fill text-xl"></i>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-16">
+    <div
+        class="inline-flex items-center justify-center w-24 h-24 bg-yellow-50 rounded-full mb-6 text-yellow-500 text-5xl shadow-sm">
+        <i class="bi bi-lightbulb"></i>
+    </div>
+    <h4 class="text-2xl font-bold text-gray-900 mb-2">Ready to explore?</h4>
+    <p class="text-gray-500 mb-8 max-w-md mx-auto">Click "Refresh" to fetch the latest suggestions from Pinterest based
+        on your keywords.</p>
+
+    <button
+        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-2 mx-auto"
+        hx-get="{% url 'wizard:fetch_suggestions_htmx' project.id %}" hx-target="#suggestions-container"
+        hx-swap="innerHTML" hx-indicator="#loading-spinner">
+        <i class="bi bi-arrow-repeat"></i> Fetch Suggestions
+    </button>
+</div>
+{% endif %}
+
+{% if results %}
+<div class="mt-8 p-6 bg-gray-50 rounded-3xl border border-gray-100">
+    <h6 class="font-bold text-gray-900 mb-4">Fetch Status</h6>
+    <div class="flex flex-wrap gap-2">
+        {% for r in results %}
+        <span
+            class="px-3 py-1.5 rounded-full text-sm font-medium border
+            {% if r.status == 'success' %} bg-green-50 text-green-700 border-green-100 {% else %} bg-red-50 text-red-700 border-red-100 {% endif %}">
+            {{ r.keyword }}: {{ r.count }}
+        </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,61 @@
+{% if trends %}
+<div class="text-center mb-8">
+    <h5 class="text-xl font-bold mb-1">Found {{ trends|length }} trends</h5>
+    <small class="text-gray-500">Click to select trends for your project</small>
+</div>
+
+<!-- Capsule Grid Container -->
+<div class="w-full">
+    <div class="flex flex-wrap justify-center gap-3">
+        {% for trend in trends %}
+        <label class="cursor-pointer group relative">
+            {% if trend.selected %}
+            <input type="checkbox" name="selected_trends" value="{{ trend.id }}" checked class="peer sr-only">
+            {% else %}
+            <input type="checkbox" name="selected_trends" value="{{ trend.id }}" class="peer sr-only">
+            {% endif %}
+
+            <span
+                class="px-5 py-3 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-all duration-200 hover:bg-gray-50 hover:border-gray-300 select-none flex items-center gap-2 shadow-sm active:scale-95">
+                {{ trend.keyword }}
+                {% if trend.trend_score %}
+                <span
+                    class="text-xs opacity-60 font-normal border-l border-gray-300 pl-2 ml-1 peer-checked:border-gray-600">
+                    {{ trend.trend_score }}%
+                </span>
+                {% endif %}
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Inline Action Button for better visibility -->
+<div class="mt-10 text-center">
+    <button type="submit"
+        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform active:scale-95 text-lg">
+        Analyze Selected Keywords <i class="bi bi-arrow-right ml-2"></i>
+    </button>
+</div>
+</div>
+
+<script>
+    // Ensure sticky bottom bar is also visible
+    var bottomActions = document.getElementById('bottom-actions');
+    if (bottomActions) {
+        bottomActions.classList.remove('hidden');
+        bottomActions.classList.add('flex');
+    }
+</script>
+
+{% else %}
+<!-- Empty State -->
+<div class="flex flex-col items-center justify-center py-20 text-center">
+    <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center text-4xl mb-6 text-yellow-600">
+        <i class="bi bi-search"></i>
+    </div>
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">Ready to discover?</h3>
+    <p class="text-gray-500 mb-8 max-w-md">Select your target country and interests above, then tap 'Fetch Trends' to
+        start exploring.</p>
+</div>
+{% endif %}

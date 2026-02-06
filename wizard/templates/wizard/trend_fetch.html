@@ -1,0 +1,416 @@
+{% extends "wizard/base.html" %}
+
+{% block title %}Discover Trends - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto pb-20">
+    <!-- Page Header -->
+    <div class="text-center py-10">
+        <h1 class="text-3xl font-bold mb-2">Discover Trends</h1>
+        <p class="text-gray-500 max-w-xl mx-auto">Select criteria to find trending topics for your niche.</p>
+    </div>
+
+    <!-- Filters Section (Sticky wrapper for better UX?) -->
+    <div class="mb-8">
+        <form id="trend-form" hx-get="{% url 'wizard:scrape_trends_htmx' project.id %}" hx-target="#trend-results"
+            hx-indicator="#loading" class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+
+            <!-- Filter Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+
+                <!-- Country -->
+                <div>
+                    <span class="block text-sm font-semibold text-gray-900 mb-3 ml-1">Country/Region</span>
+                    <div class="flex flex-wrap gap-2">
+
+
+                        <!-- Manual Radio Buttons for simplicity & strict control -->
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="US" checked class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">United
+                                States</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="CA" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Canada</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="GB+IE" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">United
+                                Kingdom</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="AU+NZ" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Australia</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="DE" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Germany</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="FR" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">France</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="ES" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Spain</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="IT" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Italy</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="BR" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Brazil</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="MX" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Mexico</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="MX+AR+CO+CL" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Latin
+                                America</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="country" value="DE+AT+CH" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Germanic</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Trend Type -->
+                <div>
+                    <span class="block text-sm font-semibold text-gray-900 mb-3 ml-1">Trend Type</span>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="type" value="3" checked class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Growing</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="type" value="4" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Seasonal</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="type" value="1" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Monthly</span>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="type" value="2" class="peer sr-only">
+                            <span
+                                class="px-4 py-2 rounded-full bg-gray-100 peer-checked:bg-gray-900 peer-checked:text-white text-sm font-medium transition-colors hover:bg-gray-200 block">Yearly</span>
+                        </label>
+                    </div>
+
+                    <!-- Age & Gender below -->
+                    <div class="mt-8">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-900 mb-3 ml-1">Age Group</span>
+                                <select name="age"
+                                    class="w-full bg-gray-100 border-none rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-900">
+                                    <option value="" selected>All Ages</option>
+                                    <option value="18-24">18-24</option>
+                                    <option value="25-34">25-34</option>
+                                    <option value="35-44">35-44</option>
+                                    <option value="45-49">45-49</option>
+                                    <option value="50-54">50-54</option>
+                                    <option value="55-64">55-64</option>
+                                    <option value="65+">65+</option>
+                                </select>
+                            </div>
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-900 mb-3 ml-1">Gender</span>
+                                <select name="gender"
+                                    class="w-full bg-gray-100 border-none rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-900">
+                                    <option value="" selected>All Genders</option>
+                                    <option value="female">Women</option>
+                                    <option value="male">Men</option>
+                                    <option value="unspecified">Unspecified</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interests (Capsule Selection) -->
+            <div class="border-t border-gray-100 pt-6">
+                <span class="block text-sm font-semibold text-gray-900 mb-3 ml-1">Interests <span
+                        class="text-gray-400 font-normal">(select multiple)</span></span>
+                <div class="flex flex-wrap gap-2">
+
+                    <!-- Animals -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="925056443165" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Animals
+                        </span>
+                    </label>
+
+                    <!-- Architecture -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="918105274631" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Architecture
+                        </span>
+                    </label>
+
+                    <!-- Art -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="961238559656" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Art
+                        </span>
+                    </label>
+
+                    <!-- Beauty -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="935541271955" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Beauty
+                        </span>
+                    </label>
+
+                    <!-- Children's Fashion -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="903733943146" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Children's Fashion
+                        </span>
+                    </label>
+
+                    <!-- Design -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="902065567321" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Design
+                        </span>
+                    </label>
+
+                    <!-- DIY and Crafts -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="934876475639" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            DIY and Crafts
+                        </span>
+                    </label>
+
+                    <!-- Education -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="922134410098" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Education
+                        </span>
+                    </label>
+
+                    <!-- Electronics -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="960887632144" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Electronics
+                        </span>
+                    </label>
+
+                    <!-- Entertainment -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="953061268473" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Entertainment
+                        </span>
+                    </label>
+
+                    <!-- Event Planning -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="941870572865" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Event Planning
+                        </span>
+                    </label>
+
+                    <!-- Finance -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="913207199297" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Finance
+                        </span>
+                    </label>
+
+                    <!-- Food and Drinks -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="918530398158" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Food and Drinks
+                        </span>
+                    </label>
+
+                    <!-- Gardening -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="909983286710" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Gardening
+                        </span>
+                    </label>
+
+                    <!-- Health -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="898620064290" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Health
+                        </span>
+                    </label>
+
+                    <!-- Home Decor -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="935249274030" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Home Decor
+                        </span>
+                    </label>
+
+                    <!-- Men's Fashion -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="924581335376" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Men's Fashion
+                        </span>
+                    </label>
+
+                    <!-- Parenting -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="920236059316" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Parenting
+                        </span>
+                    </label>
+
+                    <!-- Quotes -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="948192800438" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Quotes
+                        </span>
+                    </label>
+
+                    <!-- Sport -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="919812032692" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Sport
+                        </span>
+                    </label>
+
+                    <!-- Travel -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="908182459161" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Travel
+                        </span>
+                    </label>
+
+                    <!-- Vehicles -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="918093243960" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Vehicles
+                        </span>
+                    </label>
+
+                    <!-- Wedding -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="903260720461" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Wedding
+                        </span>
+                    </label>
+
+                    <!-- Women's Fashion -->
+                    <label class="cursor-pointer group">
+                        <input type="checkbox" name="interests" value="948967005229" class="peer sr-only">
+                        <span
+                            class="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 text-sm font-medium transition-colors hover:bg-gray-50 select-none block">
+                            Women's Fashion
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                <button type="submit"
+                    class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-md transition-transform transform active:scale-95 flex items-center gap-2">
+                    <i class="bi bi-search"></i> Fetch Trends
+                    <span id="loading" class="htmx-indicator hidden animate-spin ml-2">
+                        <i class="bi bi-arrow-repeat text-xl"></i>
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Area -->
+    <form method="post">
+        {% csrf_token %}
+        <div id="trend-results" class="min-h-[200px]">
+            {% include "wizard/partials/trend_list.html" %}
+        </div>
+
+        <!-- Sticky Bottom Bar for Actions -->
+        <div id="bottom-actions"
+            class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-40 hidden flex justify-center items-center gap-4">
+            <div class="max-w-[1600px] w-full flex justify-between items-center px-4">
+                <div class="text-sm font-medium text-gray-500">
+                    Select trends to proceed
+                </div>
+                <div class="flex gap-4">
+                    <a href="{% url 'wizard:project_create' %}"
+                        class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-full transition-colors">
+                        Back
+                    </a>
+                    <button type="submit"
+                        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform active:scale-95">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

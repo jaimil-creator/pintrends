@@ -1,0 +1,172 @@
+{% extends 'wizard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <!-- Header -->
+    <div class="container mx-auto px-4 py-12">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">Your Projects</h1>
+                <p class="text-gray-500">Manage and resume your Pinterest content projects</p>
+            </div>
+            <a href="{% url 'wizard:project_create' %}"
+                class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-2">
+                <i class="bi bi-plus-circle"></i>
+                New Project
+            </a>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mb-8">
+            <div class="relative max-w-2xl group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <i class="bi bi-search text-gray-500 group-focus-within:text-gray-900 text-lg"></i>
+                </div>
+                <input type="text" id="project-search"
+                    class="w-full h-14 bg-white rounded-full pl-14 pr-5 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-pinterest-red/20 transition-all border border-gray-200 focus:border-pinterest-red shadow-sm"
+                    placeholder="Search projects by name or niche...">
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        {% if projects_with_stats %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for item in projects_with_stats %}
+            <div class="project-card bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group"
+                data-project-name="{{ item.project.name }}" data-project-niche="{{ item.project.niche|default:'' }}">
+                <!-- Project Header -->
+                <div class="bg-gradient-to-br from-pinterest-red to-[#ad081b] p-6 text-white">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-bold mb-1">{{ item.project.name }}</h3>
+                            {% if item.project.niche %}
+                            <p class="text-pink-100 text-sm">{{ item.project.niche }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">
+                            {{ item.stage }}
+                        </span>
+                    </div>
+                    <p class="text-pink-100 text-xs">Created {{ item.project.created_at|date:"M d, Y" }}</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="p-6">
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <!-- Trends -->
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-gray-900">{{ item.stats.trends_count }}</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Trends</div>
+                        </div>
+                        <!-- Keywords -->
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-gray-900">{{ item.stats.expanded_count }}</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Keywords</div>
+                        </div>
+                        <!-- Content -->
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">{{ item.stats.total_content }}</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Content</div>
+                        </div>
+                    </div>
+
+
+                    <!-- Progress Indicator (Hidden for now - uncomment when needed) -->
+                    <!-- 
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs text-gray-500 mb-2">
+                            <span>Progress</span>
+                            <span>{% widthratio item.stats.total_content 100 100 %}%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div class="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all"
+                                style="width: {% if item.stats.total_content > 0 %}{% widthratio item.stats.total_content 100 100 %}{% else %}5{% endif %}%;">
+                            </div>
+                        </div>
+                    </div>
+                    -->
+
+
+                    <!-- Action Button -->
+                    <a href="{{ item.resume_url }}"
+                        class="block w-full bg-gray-900 hover:bg-gray-800 text-white text-center font-bold py-3 px-6 rounded-full transition-all group-hover:shadow-lg">
+                        <i class="bi bi-play-circle mr-2"></i>
+                        Resume Work
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-20">
+            <div
+                class="inline-flex items-center justify-center w-32 h-32 bg-gray-100 rounded-full mb-6 text-gray-400 text-6xl">
+                <i class="bi bi-folder-plus"></i>
+            </div>
+            <h3 class="text-3xl font-bold text-gray-900 mb-3">No Projects Yet</h3>
+            <p class="text-gray-500 mb-8 max-w-md mx-auto">
+                Start your first Pinterest content project to discover trending ideas and generate engaging content.
+            </p>
+            <a href="{% url 'wizard:project_create' %}"
+                class="inline-flex items-center gap-2 bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-4 px-10 rounded-full shadow-lg transition-transform active:scale-95">
+                <i class="bi bi-plus-circle"></i>
+                Create Your First Project
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Project Search Functionality
+    const searchInput = document.getElementById('project-search');
+    const projectCards = document.querySelectorAll('.project-card');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+
+            projectCards.forEach(card => {
+                const projectName = card.dataset.projectName.toLowerCase();
+                const projectNiche = card.dataset.projectNiche.toLowerCase();
+
+                // Check if search term matches name or niche
+                const matches = projectName.includes(searchTerm) || projectNiche.includes(searchTerm);
+
+                // Show or hide card with smooth transition
+                if (matches) {
+                    card.style.display = '';
+                    setTimeout(() => card.classList.remove('opacity-0'), 10);
+                } else {
+                    card.classList.add('opacity-0');
+                    setTimeout(() => card.style.display = 'none', 200);
+                }
+            });
+
+            // Show "no results" message if no cards are visible
+            const visibleCards = Array.from(projectCards).filter(card => card.style.display !== 'none');
+            const noResultsMsg = document.getElementById('no-results-message');
+
+            if (visibleCards.length === 0 && searchTerm.length > 0) {
+                if (!noResultsMsg) {
+                    const msg = document.createElement('div');
+                    msg.id = 'no-results-message';
+                    msg.className = 'text-center py-12 col-span-full';
+                    msg.innerHTML = `
+                        <div class="text-gray-400 text-5xl mb-4">
+                            <i class="bi bi-search"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">No projects found</h3>
+                        <p class="text-gray-500">Try adjusting your search terms</p>
+                    `;
+                    document.querySelector('.grid').appendChild(msg);
+                }
+            } else if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+        });
+    }
+</script>
+{% endblock %}

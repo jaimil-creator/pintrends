@@ -1,0 +1,93 @@
+{% extends 'wizard/base.html' %}
+
+{% block title %}Step 5: Generate Content - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto pb-24 px-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 pt-4 gap-4">
+        <div class="text-center md:text-left">
+            <h2 class="text-3xl font-bold mb-1">AI Content Generation</h2>
+            <p class="text-gray-500">Create Pinterest-optimized titles and descriptions</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4 bg-white p-2 rounded-full shadow-sm border border-gray-100 mr-4">
+                <div class="flex items-center gap-2 px-3 border-r border-gray-100">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Articles</label>
+                    <input type="number" name="article_count" value="5" min="1" max="20"
+                        class="w-12 text-center font-bold text-gray-900 border-none focus:ring-0 p-0"
+                        title="Articles per keyword">
+                </div>
+                <div class="flex items-center gap-2 px-3">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Pins</label>
+                    <input type="number" name="pin_count" value="5" min="1" max="20"
+                        class="w-12 text-center font-bold text-gray-900 border-none focus:ring-0 p-0"
+                        title="Pins per keyword">
+                </div>
+            </div>
+
+            <button
+                class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-full transition-colors flex items-center gap-2"
+                hx-include="[name='article_count'], [name='pin_count']"
+                hx-get="{% url 'wizard:generate_content_htmx' project.id %}" hx-target="#content-container"
+                hx-swap="innerHTML" hx-indicator="#loading-spinner">
+                <i class="bi bi-stars"></i> Regenerate
+            </button>
+            <form method="post" class="inline-block">
+                {% csrf_token %}
+                <button type="submit" name="proceed" value="1"
+                    class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-md transition-transform transform active:scale-95 flex items-center gap-2">
+                    Export <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="flex gap-8 mb-8 justify-center md:justify-start">
+        <div class="flex items-center gap-3">
+            <div class="bg-gray-100 rounded-full w-14 h-14 flex items-center justify-center">
+                <span class="text-xl font-bold">{{ keywords|length }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0 font-bold text-gray-900">Keywords Analyzed</h6>
+                <small class="text-gray-500">Input phrases</small>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="bg-green-50 rounded-full w-14 h-14 flex items-center justify-center border border-green-100">
+                <span class="text-xl font-bold text-green-700">{{ generated_count }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0 font-bold text-gray-900">Generated Pins</h6>
+                <small class="text-gray-500">Titles & Descriptions</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading-spinner" class="htmx-indicator w-full text-center hidden">
+        <div class="inline-flex items-center justify-center animate-spin">
+            <div class="w-12 h-12 border-4 border-gray-200 border-t-pinterest-red rounded-full"></div>
+        </div>
+        <p class="mt-4 text-gray-500 font-bold text-lg">Crafting optimized content...</p>
+    </div>
+
+    <!-- Results -->
+    <div id="content-container">
+        {% include 'wizard/partials/content_list.html' %}
+    </div>
+
+    <!-- Footer Nav -->
+    <div
+        class="fixed bottom-0 left-0 right-0 p-6 pointer-events-none z-40 bg-gradient-to-t from-white/80 to-transparent">
+        <div class="max-w-[1600px] mx-auto">
+            <a href="{% url 'wizard:expansion' project.id %}"
+                class="pointer-events-auto inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg border border-gray-200 transition-transform active:scale-95">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

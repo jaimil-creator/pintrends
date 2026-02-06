@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+playwright
+streamlit
+pandas
+plotly
+sqlalchemy
+pydantic
+requests
+beautifulsoup4

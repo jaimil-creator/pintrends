@@ -1,0 +1,75 @@
+{% extends 'wizard/base.html' %}
+
+{% block title %}Step 6: Export - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto pb-24 px-6">
+    <div class="flex flex-col items-center justify-center pt-10 md:pt-20">
+        <div class="text-center mb-10">
+            <div
+                class="w-24 h-24 bg-green-500 text-white rounded-full inline-flex items-center justify-center mb-6 shadow-xl animate-[bounce_1s_ease-in-out_1]">
+                <i class="bi bi-check-lg text-5xl"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">All Done!</h1>
+            <p class="text-gray-500 text-lg">Your content for <strong class="text-gray-900">{{ project.name }}</strong>
+                is ready.</p>
+        </div>
+
+        <div class="bg-white shadow-xl rounded-3xl overflow-hidden mb-12 w-full max-w-2xl border border-gray-100">
+            <div class="p-10 text-center">
+                <h3 class="text-2xl font-bold text-gray-900 mb-8">Export {{ content_count }} Pins</h3>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'wizard:export_csv' project.id %}"
+                        class="inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 px-8 rounded-full border-2 border-gray-200 transition-colors">
+                        <i class="bi bi-filetype-csv text-xl"></i> Download CSV
+                    </a>
+                    <a href="{% url 'wizard:export_json' project.id %}"
+                        class="inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white font-bold py-4 px-8 rounded-full shadow-md transition-transform active:scale-95">
+                        <i class="bi bi-filetype-json text-xl"></i> Download JSON
+                    </a>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 text-center border-t border-gray-100">
+                <button
+                    class="text-gray-500 hover:text-gray-900 font-medium text-sm flex items-center justify-center gap-2 mx-auto w-full py-2"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#previewContent"
+                    onclick="document.getElementById('previewContent').classList.toggle('hidden')">
+                    Preview Generated Content <i class="bi bi-chevron-down"></i>
+                </button>
+
+                <div id="previewContent" class="hidden mt-6 text-left px-4 pb-4">
+                    <div class="masonry-grid w-full">
+                        <div class="grid-sizer w-[48%]"></div>
+                        <div class="gutter-sizer w-[4%]"></div>
+                        {% for c in content|slice:":4" %}
+                        <div class="grid-item w-[48%] mb-4">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <h6 class="font-bold text-gray-900 mb-1 text-sm">{{ c.title }}</h6>
+                                <p class="text-gray-500 text-xs truncate">{{ c.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if content|length > 4 %}
+                    <p class="text-center text-gray-400 text-xs mt-2">...and {{ content|length|add:"-4" }} more</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{% url 'wizard:project_create' %}"
+                class="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 font-bold px-6 py-3 rounded-full hover:bg-gray-100 transition-colors">
+                <i class="bi bi-plus-lg"></i> Start Another Project
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Inline script for simple toggle since we might not have bootstrap JS for collapse anymore, or just to be safe -->
+<script>
+    // If using Tailwind only, manual toggle. If Bootstrap JS is still loaded in base, data-bs-toggle might work but class manipulation needed for display.
+    // The onClick above handles the 'hidden' class toggle.
+</script>
+{% endblock %}
