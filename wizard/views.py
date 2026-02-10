@@ -3,7 +3,7 @@ from django.views.generic import CreateView, TemplateView, View
 from django.urls import reverse
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
-from .models import Project, TrendKeyword, Suggestion, ExpandedKeyword, Content, ArticleIdea, PinIdea
+from .models import Project, TrendKeyword, Suggestion, ExpandedKeyword, Content, ArticleIdea, PinIdea, BlogPost, BlogSection
 
 # ... (rest of imports)
 
@@ -299,6 +299,7 @@ def fetch_suggestions_htmx(request, project_id):
     
     suggestions = Suggestion.objects.filter(project=project)
     return render(request, 'wizard/partials/suggestion_list.html', {
+        'project': project,
         'suggestions': suggestions,
         'results': results
     })
@@ -421,7 +422,7 @@ class ContentGenView(TemplateView):
         project_id = self.kwargs['project_id']
         
         if 'proceed' in request.POST:
-            return redirect('wizard:export', project_id=project_id)
+            return redirect('wizard:blog_gen', project_id=project_id)
         
         return redirect('wizard:content_gen', project_id=project_id)
 
@@ -638,3 +639,548 @@ def update_pin_htmx(request, pin_id):
         })
     
     return HttpResponse(status=400)
+
+
+# ============= STEP 7: Blog Generation =============
+class BlogGenView(TemplateView):
+    template_name = 'wizard/blog_gen.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project_id = self.kwargs['project_id']
+        project = get_object_or_404(Project, pk=project_id)
+        context['project'] = project
+        
+        # Get all article ideas with their blog generation status
+        context['article_ideas'] = ArticleIdea.objects.filter(
+            project=project
+        ).prefetch_related('blog_posts')
+        
+        # Get all generated blogs
+        context['blog_posts'] = BlogPost.objects.filter(
+            project=project
+        ).prefetch_related('sections').order_by('-created_at')
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        project_id = self.kwargs['project_id']
+        
+        if 'proceed' in request.POST:
+            return redirect('wizard:export', project_id=project_id)
+        
+        return redirect('wizard:blog_gen', project_id=project_id)
+
+def generate_blog_htmx(request, article_id):
+    """HTMX endpoint - Generate a complete blog from an article idea."""
+    from django.core.files.base import ContentFile
+    from .services.blog_generator import BlogGeneratorService
+    import json as json_module
+    import traceback
+    
+    article = get_object_or_404(ArticleIdea, pk=article_id)
+    project = article.project
+    
+    # Create blog post record
+    blog_post = BlogPost.objects.create(
+        project=project,
+        article_idea=article,
+        topic=article.title,
+        intro="",
+        conclusion="",
+        generation_status='generating'
+    )
+    
+    try:
+        generator = BlogGeneratorService()
+        
+        # Step 1: Generate blog content
+        print(f"Generating blog content for: {article.title}")
+        blog_content = generator.generate_blog_content(article.title)
+        
+        # Step 2: Parse content
+        intro, items, conclusion = generator.parse_blog_content(blog_content)
+        
+        if not items:
+            raise Exception("No blog sections generated")
+        
+        # Update blog post with text content
+        blog_post.intro = intro
+        blog_post.conclusion = conclusion
+        blog_post.save()
+        
+        # Step 3: Generate image prompts
+        print("Generating image prompts...")
+        thumbnail_prompt = generator.generate_image_prompt(
+            title=article.title,
+            description=intro,
+            prompt_type="thumbnail"
+        )
+        
+        blog_post.thumbnail_prompt = thumbnail_prompt
+        blog_post.save()
+        
+        item_prompts = {}
+        for i, item in enumerate(items):
+            prompt = generator.generate_image_prompt(
+                title=item['title'],
+                description=item['description'],
+                prompt_type="image",
+                blog_topic=article.title
+            )
+            item_prompts[f'item_{i}'] = prompt
+        
+        # Step 4: Generate all images in parallel
+        print("Generating images in parallel...")
+        all_prompts = {'thumbnail': thumbnail_prompt}
+        all_prompts.update(item_prompts)
+        
+        images = generator.generate_all_images_parallel(all_prompts)
+        
+        # Update thumbnail URL
+        blog_post.thumbnail_url = images.get('thumbnail', '')
+        blog_post.save()
+        
+        # Step 5: Create blog sections with images
+        for i, item in enumerate(items):
+            BlogSection.objects.create(
+                blog_post=blog_post,
+                order=i + 1,
+                title=item['title'],
+                description=item['description'],
+                image_url=images.get(f'item_{i}', ''),
+                image_prompt=item_prompts.get(f'item_{i}', '')
+            )
+        
+        # Step 6: Generate export files
+        print("Generating export files...")
+        blog_data = {
+            'topic': blog_post.topic,
+            'intro': blog_post.intro,
+            'conclusion': blog_post.conclusion,
+            'thumbnail_url': blog_post.thumbnail_url,
+            'sections': [
+                {
+                    'title': section.title,
+                    'description': section.description,
+                    'image_url': section.image_url
+                }
+                for section in blog_post.sections.all()
+            ]
+        }
+        
+        # Generate DOCX
+        docx_stream = generator.create_docx(blog_data)
+        blog_post.docx_file.save(
+            f'blog_{blog_post.id}.docx',
+            ContentFile(docx_stream.read()),
+            save=False
+        )
+        
+        # Generate JSON
+        json_data = generator.create_pinterest_json(blog_data)
+        blog_post.json_file.save(
+            f'blog_{blog_post.id}.json',
+            ContentFile(json_module.dumps(json_data, indent=2)),
+            save=False
+        )
+        
+        # Mark as completed
+        blog_post.generation_status = 'completed'
+        blog_post.save()
+        
+        print(f"✓ Blog generation completed for: {article.title}")
+        
+        # Return success partial
+        return render(request, 'wizard/partials/blog_success.html', {
+            'blog_post': blog_post,
+            'project': project
+        })
+        
+    except Exception as e:
+        print(f"✗ Blog generation failed: {e}")
+        traceback.print_exc()
+        
+        blog_post.generation_status = 'failed'
+        blog_post.error_message = str(e)
+        blog_post.save()
+        
+        return render(request, 'wizard/partials/error.html', {
+            'error': f'Blog generation failed: {str(e)}'
+        })
+
+def blog_detail_htmx(request, blog_id):
+    """HTMX endpoint - Show blog preview."""
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    
+    return render(request, 'wizard/partials/blog_preview.html', {
+        'blog_post': blog_post,
+        'sections': blog_post.sections.all()
+    })
+
+def regenerate_blog_htmx(request, blog_id):
+    """HTMX endpoint - Regenerate a blog post with new AI content."""
+    from django.core.files.base import ContentFile
+    from .services.blog_generator import BlogGeneratorService
+    import json as json_module
+    import traceback
+    
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    project = blog_post.project
+    article = blog_post.article_idea
+    
+    # Delete old sections
+    blog_post.sections.all().delete()
+    
+    # Reset blog post
+    blog_post.intro = ""
+    blog_post.conclusion = ""
+    blog_post.thumbnail_url = ""
+    blog_post.thumbnail_prompt = ""
+    blog_post.generation_status = 'generating'
+    blog_post.error_message = ""
+    blog_post.save()
+    
+    try:
+        generator = BlogGeneratorService()
+        
+        # Step 1: Generate blog content
+        print(f"Regenerating blog content for: {article.title}")
+        blog_content = generator.generate_blog_content(article.title)
+        
+        # Step 2: Parse content
+        intro, items, conclusion = generator.parse_blog_content(blog_content)
+        
+        if not items:
+            raise Exception("No blog sections generated")
+        
+        # Update blog post with text content
+        blog_post.intro = intro
+        blog_post.conclusion = conclusion
+        blog_post.save()
+        
+        # Step 3: Generate image prompts
+        print("Generating image prompts...")
+        thumbnail_prompt = generator.generate_image_prompt(
+            title=article.title,
+            description=intro,
+            prompt_type="thumbnail"
+        )
+        
+        blog_post.thumbnail_prompt = thumbnail_prompt
+        blog_post.save()
+        
+        item_prompts = {}
+        for i, item in enumerate(items):
+            prompt = generator.generate_image_prompt(
+                title=item['title'],
+                description=item['description'],
+                prompt_type="image",
+                blog_topic=article.title
+            )
+            item_prompts[f'item_{i}'] = prompt
+        
+        # Step 4: Generate all images in parallel
+        print("Generating images in parallel...")
+        all_prompts = {'thumbnail': thumbnail_prompt}
+        all_prompts.update(item_prompts)
+        
+        images = generator.generate_all_images_parallel(all_prompts)
+        
+        # Update thumbnail URL
+        blog_post.thumbnail_url = images.get('thumbnail', '')
+        blog_post.save()
+        
+        # Step 5: Create blog sections with images
+        for i, item in enumerate(items):
+            BlogSection.objects.create(
+                blog_post=blog_post,
+                order=i + 1,
+                title=item['title'],
+                description=item['description'],
+                image_url=images.get(f'item_{i}', ''),
+                image_prompt=item_prompts.get(f'item_{i}', '')
+            )
+        
+        # Step 6: Generate export files
+        print("Generating export files...")
+        blog_data = {
+            'topic': blog_post.topic,
+            'intro': blog_post.intro,
+            'conclusion': blog_post.conclusion,
+            'thumbnail_url': blog_post.thumbnail_url,
+            'sections': [
+                {
+                    'title': section.title,
+                    'description': section.description,
+                    'image_url': section.image_url
+                }
+                for section in blog_post.sections.all()
+            ]
+        }
+        
+        # Generate DOCX
+        docx_stream = generator.create_docx(blog_data)
+        blog_post.docx_file.save(
+            f'blog_{blog_post.id}.docx',
+            ContentFile(docx_stream.read()),
+            save=False
+        )
+        
+        # Generate JSON
+        json_data = generator.create_pinterest_json(blog_data)
+        blog_post.json_file.save(
+            f'blog_{blog_post.id}.json',
+            ContentFile(json_module.dumps(json_data, indent=2)),
+            save=False
+        )
+        
+        # Mark as completed
+        blog_post.generation_status = 'completed'
+        blog_post.save()
+        
+        print(f"✓ Blog regeneration completed for: {article.title}")
+        
+        # Render success content
+        response = render(request, 'wizard/partials/blog_success.html', {
+            'blog_post': blog_post,
+            'project': project
+        })
+        
+        # Render toast notification (OOB swap)
+        toast = render(request, 'wizard/partials/toast_success.html')
+        
+        # Combine responses
+        return HttpResponse(response.content + toast.content)
+        
+    except Exception as e:
+        print(f"✗ Blog regeneration failed: {e}")
+        traceback.print_exc()
+        
+        blog_post.generation_status = 'failed'
+        blog_post.error_message = str(e)
+        blog_post.save()
+        
+        return render(request, 'wizard/partials/error.html', {
+            'error': f'Blog regeneration failed: {str(e)}'
+        })
+
+def blog_edit(request, blog_id):
+    """Full page endpoint - Show blog edit form."""
+    import json as json_module
+    from .services.blog_generator import BlogGeneratorService
+    
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    
+    # Use stored structured_content for preview
+    if blog_post.structured_content:
+        json_preview = json_module.dumps(blog_post.structured_content, indent=2)
+    else:
+        # Fallback if empty (shouldn't happen with migration, but safe)
+        generator = BlogGeneratorService()
+        blog_data = {
+            'topic': blog_post.topic,
+            'intro': blog_post.intro,
+            'conclusion': blog_post.conclusion,
+            'thumbnail_url': blog_post.thumbnail_url,
+            'sections': [
+                {
+                    'title': section.title,
+                    'description': section.description,
+                    'image_url': section.image_url
+                }
+                for section in blog_post.sections.all()
+            ]
+        }
+        json_preview_data = generator.create_pinterest_json(blog_data)
+        json_preview = json_module.dumps(json_preview_data, indent=2)
+    
+    return render(request, 'wizard/blog_edit.html', {
+        'blog_post': blog_post,
+        'sections': blog_post.sections.all(),
+        'json_preview': json_preview
+    })
+
+def blog_update(request, blog_id):
+    """Full page endpoint - Update blog post and sections."""
+    from django.core.files.base import ContentFile
+    from .services.blog_generator import BlogGeneratorService
+    import json as json_module
+    
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    
+    if request.method == 'POST':
+        # Update Main Blog Fields
+        blog_post.topic = request.POST.get('topic', blog_post.topic)
+        blog_post.intro = request.POST.get('intro', blog_post.intro)
+        blog_post.conclusion = request.POST.get('conclusion', blog_post.conclusion)
+        blog_post.save()
+        
+        # Update Sections
+        section_ids = request.POST.getlist('section_ids')
+        for sec_id in section_ids:
+            try:
+                section = BlogSection.objects.get(pk=sec_id, blog_post=blog_post)
+                section.title = request.POST.get(f'section_title_{sec_id}', section.title)
+                section.description = request.POST.get(f'section_description_{sec_id}', section.description)
+                section.save()
+            except BlogSection.DoesNotExist:
+                continue
+
+        # Sync to structured_content JSON
+        try:
+            import uuid
+            import json as json_module
+            
+            # Construct JSON structure matching requirement
+            features = []
+            for section in blog_post.sections.all().order_by('order'):
+                feature = {
+                    "title": section.title,
+                    "image_url": section.image_url,
+                    "button_text": "Try Now",
+                    "button_url": "https://www.dressr.ai/clothes-swap",
+                    "description": [section.description],
+                    "order": section.order 
+                }
+                features.append(feature)
+            
+            # Preserve existing ID if possible, or generate new
+            existing_id = blog_post.structured_content.get("id") if blog_post.structured_content else f"pinterest-blog-{uuid.uuid4().hex[:8]}"
+            
+            json_data = {
+                "id": existing_id,
+                "title": blog_post.topic,
+                "thumbnail_url": blog_post.thumbnail_url,
+                "alt": f"{blog_post.topic} thumbnail",
+                "description": [blog_post.intro],
+                "metadata": {
+                    "title": blog_post.topic,
+                    "description": [blog_post.intro]
+                },
+                "features": features,
+                "conclusion": [blog_post.conclusion],
+                "publish_button_text": "Publish"
+            }
+            
+            blog_post.structured_content = json_data
+            blog_post.save()
+            
+        except Exception as e:
+            print(f"Error syncing structured_content: {e}")
+        
+        # No need to regenerate exports (DOCX/JSON) on save
+        # They are now generated on-demand when downloading
+        
+        # Determine redirect URL based on project stage or default
+        return redirect('wizard:blog_gen', project_id=blog_post.project.id)
+
+    return HttpResponse(status=400)
+
+def export_blog_docx(request, blog_id):
+    """Download blog as DOCX file (Generated on-demand)."""
+    from django.http import FileResponse
+    from django.core.files.base import ContentFile
+    from .services.blog_generator import BlogGeneratorService
+    
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    
+    try:
+        # Generate DOCX on the fly
+        generator = BlogGeneratorService()
+        
+        # Helper to get description string from list or string
+        def get_desc(d):
+            if isinstance(d, list):
+                return d[0] if d else ""
+            return str(d)
+
+        # Construct blog_data from structured_content if available
+        if blog_post.structured_content:
+            sc = blog_post.structured_content
+            blog_data = {
+                'topic': sc.get('title', blog_post.topic),
+                'intro': get_desc(sc.get('description', [blog_post.intro])),
+                'conclusion': get_desc(sc.get('conclusion', [blog_post.conclusion])),
+                'thumbnail_url': sc.get('thumbnail_url', blog_post.thumbnail_url),
+                'sections': [
+                    {
+                        'title': f.get('title'),
+                        'description': get_desc(f.get('description', [''])),
+                        'image_url': f.get('image_url')
+                    }
+                    for f in sc.get('features', [])
+                ]
+            }
+        else:
+            # Fallback to DB relational data
+            blog_data = {
+                'topic': blog_post.topic,
+                'intro': blog_post.intro,
+                'conclusion': blog_post.conclusion,
+                'thumbnail_url': blog_post.thumbnail_url,
+                'sections': [
+                    {
+                        'title': section.title,
+                        'description': section.description,
+                        'image_url': section.image_url
+                    }
+                    for section in blog_post.sections.all()
+                ]
+            }
+        
+        docx_stream = generator.create_docx(blog_data)
+        
+        # Serve stream directly
+        response = FileResponse(
+            docx_stream,
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="blog_{blog_post.id}.docx"'
+        return response
+        
+    except Exception as e:
+        print(f"Error generating DOCX export: {e}")
+        return HttpResponse(f"Error generating DOCX: {str(e)}", status=500)
+
+def export_blog_json(request, blog_id):
+    """Download blog as Pinterest JSON (Generated on-demand)."""
+    import json as json_module
+    from .services.blog_generator import BlogGeneratorService
+    
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    
+    try:
+        # Use stored structured_content if available
+        if blog_post.structured_content:
+            json_data = blog_post.structured_content
+        else:
+            # Fallback re-generation (shouldn't be needed after migration)
+            generator = BlogGeneratorService()
+            blog_data = {
+                'topic': blog_post.topic,
+                'intro': blog_post.intro,
+                'conclusion': blog_post.conclusion,
+                'thumbnail_url': blog_post.thumbnail_url,
+                'sections': [
+                    {
+                        'title': section.title,
+                        'description': section.description,
+                        'image_url': section.image_url
+                    }
+                    for section in blog_post.sections.all()
+                ]
+            }
+            json_data = generator.create_pinterest_json(blog_data)
+        
+        # Serve JSON directly
+        response = HttpResponse(
+            json_module.dumps(json_data, indent=2),
+            content_type='application/json'
+        )
+        response['Content-Disposition'] = f'attachment; filename="blog_{blog_post.id}.json"'
+        return response
+        
+    except Exception as e:
+        print(f"Error serving JSON export: {e}")
+        return HttpResponse(f"Error serving JSON: {str(e)}", status=500)

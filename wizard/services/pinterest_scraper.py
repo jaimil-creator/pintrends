@@ -91,23 +91,45 @@ class PinterestScraperService:
             
             suggestions = []
             
-            # Selector logic (from legacy suggestions.py)
-            results = browser.page.locator('.KvKvqR > div > div')
+            # Selector logic - Updated for reliability
+            
+            # Selector 0: Legacy selector (users reported this working)
+            results = browser.page.locator('.KvKvqR > div > div') 
             count = await results.count()
+            print(f"Selector 0 (.KvKvqR > div > div) found: {count}")
+
+            if count == 0:
+                # Selector 1: Common class for search bubbles
+                results = browser.page.locator('[data-test-id="guided-search-guide"]') 
+                count = await results.count()
+                print(f"Selector 1 (data-test-id) found: {count}")
             
             if count == 0:
-                 # Fallback
-                 results = browser.page.locator('[data-test-id="guided-search-guide"]')
+                 # Selector 2: Fallback to common class
+                 # Often these are in a scrollable container at top
+                 results = browser.page.locator('div[role="button"] .tBJ') 
                  count = await results.count()
-            
+                 print(f"Selector 2 (div role=button .tBJ) found: {count}")
+
+            if count == 0:
+                 # Selector 3: Try looking for text within specific container types
+                 # This targets the chips at the top of search results
+                 results = browser.page.locator('div[data-test-id="scrollable-container"] div[role="button"]')
+                 count = await results.count()
+                 print(f"Selector 3 (scrollable container buttons) found: {count}")
+
+            suggestions = []
             for i in range(count):
-                text = await results.nth(i).text_content()
-                if text:
-                    raw = text.strip()
-                    # CamelCase split trick
-                    formatted = re.sub(r'(?<=[a-z])(?=[A-Z])', ', ', raw)
-                    suggestions.append(formatted)
+                try:
+                    text = await results.nth(i).text_content()
+                    if text:
+                        clean_text = text.strip()
+                        if clean_text and len(clean_text) > 2:
+                            suggestions.append(clean_text)
+                except Exception as e:
+                    print(f"Error extracting text from suggestion {i}: {e}")
             
+            print(f"Total unique suggestions found: {len(set(suggestions))}")
             return list(dict.fromkeys(suggestions))
             
         except Exception as e:

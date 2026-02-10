@@ -74,6 +74,30 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
+
+        /* Custom Scrollbar for Modals */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            /* border-top-right-radius: 1.5rem; */
+            /* border-bottom-right-radius: 1.5rem; */
+            margin-top: 5rem;
+            /* Avoid header */
+            margin-bottom: 2rem;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 10px;
+            border: 1px solid white;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #d1d5db;
+        }
     </style>
 </head>
 
@@ -150,7 +174,28 @@
         {% endblock %}
     </main>
 
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-notification"></div>
+
     <script>
+        // Modal Body Scroll Lock
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.detail.target.id === 'modal-container' || evt.detail.target.closest('#modal-container')) {
+                document.body.classList.add('overflow-hidden');
+            }
+        });
+
+        // Observer to detect when modal is removed manually via JS
+        const modalContainer = document.getElementById('modal-container');
+        const observer = new MutationObserver((mutations) => {
+            if (!modalContainer.hasChildNodes()) {
+                document.body.classList.remove('overflow-hidden');
+            }
+        });
+        observer.observe(modalContainer, { childList: true });
         document.body.addEventListener('htmx:configRequest', (event) => {
             event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
         });

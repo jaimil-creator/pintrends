@@ -1,0 +1,29 @@
+<div id="toast-notification"
+    class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 ease-in-out translate-y-0 opacity-100"
+    hx-swap-oob="true">
+    <div
+        class="bg-white border-l-4 border-green-500 rounded-r-xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px] animate-slideIn">
+        <div class="bg-green-100 rounded-full p-2">
+            <i class="bi bi-check-lg text-green-600 text-xl"></i>
+        </div>
+        <div class="flex-1">
+            <h4 class="font-bold text-gray-900 text-sm">Blog Ready!</h4>
+            <p class="text-xs text-gray-500">Your content has been regenerated.</p>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()"
+            class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <script>
+        // Auto-dismiss after 5 seconds
+        setTimeout(function () {
+            const toast = document.getElementById('toast-notification');
+            if (toast) {
+                toast.classList.add('translate-y-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 5000);
+    </script>
+</div>

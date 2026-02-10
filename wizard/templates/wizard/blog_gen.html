@@ -1,0 +1,166 @@
+{% extends 'wizard/base.html' %}
+
+{% block title %}Step 7: Blog Generation - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto pb-24 px-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 pt-4 gap-4">
+        <div class="text-center md:text-left">
+            <h2 class="text-3xl font-bold mb-1">✨ AI Blog Generation</h2>
+            <p class="text-gray-500">Create complete blogs with AI-generated images</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <form method="post" class="inline-block">
+                {% csrf_token %}
+                <button type="submit" name="proceed" value="1"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-8 rounded-full transition-transform transform active:scale-95 flex items-center gap-2">
+                    Skip <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="flex gap-8 mb-8 justify-center md:justify-start">
+        <div class="flex items-center gap-3">
+            <div class="bg-gray-100 rounded-full w-14 h-14 flex items-center justify-center">
+                <span class="text-xl font-bold">{{ article_ideas|length }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0 font-bold text-gray-900">Article Ideas</h6>
+                <small class="text-gray-500">Available to generate</small>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="bg-green-50 rounded-full w-14 h-14 flex items-center justify-center border border-green-100">
+                <span class="text-xl font-bold text-green-700">{{ blog_posts|length }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0 font-bold text-gray-900">Generated Blogs</h6>
+                <small class="text-gray-500">Complete with images</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-8">
+        <div class="flex items-start gap-4">
+            <div class="bg-blue-100 rounded-full p-3">
+                <i class="bi bi-lightbulb-fill text-blue-600 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-gray-900 mb-2">How Blog Generation Works</h3>
+                <p class="text-gray-700 text-sm leading-relaxed">
+                    Select an article title below and click <strong>"Generate Full Blog"</strong>. Our AI will:
+                </p>
+                <ul class="mt-2 space-y-1 text-sm text-gray-700">
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-green-600"></i>
+                        <span>Write a complete blog with intro, 5-10 sections, and conclusion</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-green-600"></i>
+                        <span>Generate AI images for each section using lifestyle photography</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-green-600"></i>
+                        <span>Export to Word (DOCX) and Pinterest JSON formats</span>
+                    </li>
+                </ul>
+                <p class="text-gray-600 text-xs mt-3">
+                    <i class="bi bi-clock"></i> Generation takes 45-90 seconds per blog
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Article Ideas Section -->
+    <div class="mb-12">
+        <h3 class="text-2xl font-bold mb-6">📝 Your Article Ideas</h3>
+
+        {% if article_ideas %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for article in article_ideas %}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                <div class="mb-4">
+                    <h4 class="font-bold text-gray-900 text-lg mb-2">{{ article.title }}</h4>
+                    {% if article.hook %}
+                    <p class="text-sm text-gray-600">{{ article.hook }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <span class="text-xs text-gray-500">
+                        <i class="bi bi-tag"></i> {{ article.expanded_keyword.keyword }}
+                    </span>
+
+                    {% if article.blog_posts.exists %}
+                    <span class="text-green-600 text-sm font-medium">
+                        <i class="bi bi-check-circle-fill"></i> Generated
+                    </span>
+                    {% else %}
+                    <button hx-post="{% url 'wizard:generate_blog_htmx' article.id %}" hx-target="#blog-results"
+                        hx-swap="afterbegin" hx-indicator="#loading-indicator-{{ article.id }}"
+                        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-2 px-4 rounded-full text-sm transition-all flex items-center gap-2">
+                        <i class="bi bi-stars"></i> Generate Blog
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Loading indicator for this card -->
+                <div id="loading-indicator-{{ article.id }}" class="htmx-indicator mt-4">
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="w-6 h-6 border-3 border-gray-200 border-t-pinterest-red rounded-full animate-spin">
+                        </div>
+                        <span class="text-sm text-gray-600 font-medium">Generating blog...</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-gray-50 rounded-2xl p-12 text-center">
+            <i class="bi bi-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 font-medium">No article ideas found</p>
+            <p class="text-gray-500 text-sm">Go back to Content Generation to create some article ideas first</p>
+            <a href="{% url 'wizard:content_gen' project.id %}"
+                class="mt-4 inline-block bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-2 px-6 rounded-full">
+                Go to Content Generation
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Generated Blogs Section -->
+    <div id="blog-results">
+        {% if blog_posts %}
+        <h3 class="text-2xl font-bold mb-6">📚 Generated Blogs</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for blog in blog_posts %}
+            {% include 'wizard/partials/blog_card.html' with blog_post=blog %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer Nav -->
+    <div
+        class="fixed bottom-0 left-0 right-0 p-6 pointer-events-none z-40 bg-gradient-to-t from-white/80 to-transparent">
+        <div class="max-w-[1600px] mx-auto">
+            <a href="{% url 'wizard:content_gen' project.id %}"
+                class="pointer-events-auto inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg border border-gray-200 transition-transform active:scale-95">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal Container for previews -->
+    <div id="modal-container"></div>
+
+    <!-- Regeneration Confirmation Modal -->
+    {% include 'wizard/partials/regenerate_confirm_modal.html' %}
+</div>
+{% endblock %}

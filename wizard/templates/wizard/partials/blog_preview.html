@@ -1,0 +1,71 @@
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+    onclick="this.remove()">
+    <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+        onclick="event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-3xl">
+            <h3 class="text-2xl font-bold">{{ blog_post.topic }}</h3>
+            <button onclick="this.closest('.fixed').remove()"
+                class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                <i class="bi bi-x-lg text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-8">
+            <!-- Thumbnail -->
+            {% if blog_post.thumbnail_url %}
+            <img src="{{ blog_post.thumbnail_url }}" alt="{{ blog_post.topic }}"
+                class="w-full rounded-2xl mb-6 shadow-lg">
+            {% endif %}
+
+            <!-- Intro -->
+            <div class="prose prose-lg max-w-none mb-8">
+                <p class="text-gray-700 leading-relaxed">{{ blog_post.intro }}</p>
+            </div>
+
+            <!-- Sections -->
+            {% for section in sections %}
+            <div class="mb-8">
+                <h4 class="text-xl font-bold text-gray-900 mb-4">
+                    {{ section.order }}. {{ section.title }}
+                </h4>
+
+                {% if section.image_url %}
+                <img src="{{ section.image_url }}" alt="{{ section.title }}"
+                    class="w-full md:w-2/3 rounded-xl mb-4 shadow-md">
+                {% endif %}
+
+                <p class="text-gray-700 leading-relaxed">{{ section.description }}</p>
+            </div>
+            {% endfor %}
+
+            <!-- Conclusion -->
+            {% if blog_post.conclusion %}
+            <div class="mt-8 pt-8 border-t border-gray-200">
+                <h4 class="text-xl font-bold text-gray-900 mb-4">Conclusion</h4>
+                <p class="text-gray-700 leading-relaxed">{{ blog_post.conclusion }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="mt-8 flex gap-4 flex-wrap">
+                <button onclick="showRegenerateConfirm({{ blog_post.id }}); this.closest('.fixed').remove();"
+                    class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-center">
+                    <i class="bi bi-arrow-clockwise"></i> Regenerate
+                </button>
+
+                <a href="{% url 'wizard:export_blog_docx' blog_post.id %}"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-center">
+                    <i class="bi bi-download"></i> Download DOCX
+                </a>
+                <a href="{% url 'wizard:export_blog_json' blog_post.id %}"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-center">
+                    <i class="bi bi-download"></i> Download JSON
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

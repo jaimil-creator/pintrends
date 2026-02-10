@@ -1,0 +1,171 @@
+{% extends 'wizard/base.html' %}
+{% load static %}
+
+{% block title %}Edit Blog: {{ blog_post.topic }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1920px] mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-8rem)]">
+
+        <!-- Left Column: JSON Preview -->
+        <div class="bg-[#1e1e1e] rounded-3xl shadow-lg border border-gray-800 overflow-hidden flex flex-col h-full">
+            <div class="bg-[#2d2d2d] px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-white font-mono text-sm font-bold flex items-center gap-2">
+                    <i class="bi bi-filetype-json text-yellow-400"></i> JSON Output
+                </h2>
+                <div class="flex gap-2">
+                    <button onclick="copyJson()"
+                        class="text-gray-400 hover:text-white transition-colors text-xs uppercase font-bold tracking-wider">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <a href="{% url 'wizard:export_blog_json' blog_post.id %}"
+                        class="text-gray-400 hover:text-white transition-colors text-xs uppercase font-bold tracking-wider">
+                        <i class="bi bi-download"></i> Download
+                    </a>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto custom-scrollbar p-6">
+                <pre class="text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap select-text"
+                    id="json-content">{{ json_preview }}</pre>
+            </div>
+        </div>
+
+        <!-- Right Column: Edit Form -->
+        <form method="post" action="{% url 'wizard:blog_update' blog_post.id %}"
+            class="bg-white rounded-3xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full">
+            {% csrf_token %}
+
+            <!-- Header -->
+            <div
+                class="bg-white border-b border-gray-200 p-6 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm bg-opacity-90 shrink-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Edit Blog Post</h1>
+                    <p class="text-sm text-gray-500 mt-1">Make changes and verify before exporting</p>
+                </div>
+                <div class="flex gap-3">
+                    <a href="{% url 'wizard:blog_gen' blog_post.project.id %}"
+                        class="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors flex items-center gap-2">
+                        <i class="bi bi-x-lg"></i> Cancel
+                    </a>
+                    <button type="submit"
+                        class="px-6 py-2.5 rounded-full bg-pinterest-red text-white font-bold hover:bg-[#ad081b] transition-colors shadow-md hover:shadow-lg flex items-center gap-2">
+                        <i class="bi bi-check-lg"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-8 space-y-8 overflow-y-auto custom-scrollbar flex-1">
+
+                <!-- Thumbnail Preview -->
+                {% if blog_post.thumbnail_url %}
+                <div class="relative group rounded-2xl overflow-hidden shadow-md shrink-0">
+                    <img src="{{ blog_post.thumbnail_url }}" alt="Thumbnail" class="w-full h-64 object-cover">
+                    <div
+                        class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300">
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Topic -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Blog
+                        Title</label>
+                    <input type="text" name="topic" value="{{ blog_post.topic }}"
+                        class="w-full px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pinterest-red focus:border-transparent font-bold text-xl shadow-sm transition-all"
+                        placeholder="Enter a catchy title..." required>
+                </div>
+
+                <!-- Intro -->
+                <div>
+                    <label
+                        class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Introduction</label>
+                    <textarea name="intro" rows="6"
+                        class="w-full px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pinterest-red focus:border-transparent leading-relaxed text-gray-800 shadow-sm transition-all"
+                        placeholder="Write an engaging introduction..." required>{{ blog_post.intro }}</textarea>
+                </div>
+
+                <!-- Sections -->
+                <div class="space-y-8">
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Content Sections</h2>
+                        <span class="text-sm text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full">{{
+                            sections|length }} Sections</span>
+                    </div>
+
+                    {% for section in sections %}
+                    <div
+                        class="bg-gray-50 p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 relative group">
+                        <input type="hidden" name="section_ids" value="{{ section.id }}">
+
+                        <div
+                            class="absolute top-4 right-4 text-gray-300 font-bold text-6xl opacity-20 pointer-events-none select-none">
+                            {{ section.order }}
+                        </div>
+
+                        <div class="mb-6 relative z-10">
+                            <label class="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Section
+                                Title</label>
+                            <input type="text" name="section_title_{{ section.id }}" value="{{ section.title }}"
+                                class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pinterest-red focus:border-transparent font-bold text-lg bg-white shadow-sm"
+                                required>
+                        </div>
+
+                        <div class="grid md:grid-cols-3 gap-6 relative z-10">
+                            <!-- Image Preview -->
+                            <div class="md:col-span-1">
+                                {% if section.image_url %}
+                                <div class="rounded-xl overflow-hidden shadow-sm h-full max-h-48 md:max-h-full">
+                                    <img src="{{ section.image_url }}" alt="Section Image"
+                                        class="w-full h-full object-cover">
+                                </div>
+                                {% else %}
+                                <div class="bg-gray-200 rounded-xl h-48 flex items-center justify-center text-gray-400">
+                                    <i class="bi bi-image text-3xl"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Content Editor -->
+                            <div class="md:col-span-2">
+                                <label
+                                    class="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Content</label>
+                                <textarea name="section_description_{{ section.id }}" rows="8"
+                                    class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pinterest-red focus:border-transparent leading-relaxed bg-white shadow-sm h-full"
+                                    required>{{ section.description }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Conclusion -->
+                <div>
+                    <label
+                        class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Conclusion</label>
+                    <textarea name="conclusion" rows="5"
+                        class="w-full px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pinterest-red focus:border-transparent leading-relaxed text-gray-800 shadow-sm transition-all"
+                        placeholder="Wrap up with a strong conclusion..." required>{{ blog_post.conclusion }}</textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function copyJson() {
+        const content = document.getElementById('json-content').innerText;
+        navigator.clipboard.writeText(content).then(() => {
+            // Optional: Show feedback
+            const btn = event.currentTarget;
+            const icon = btn.querySelector('i');
+            const originalClass = icon.className;
+
+            icon.className = 'bi bi-check2 text-green-400';
+            setTimeout(() => {
+                icon.className = originalClass;
+            }, 2000);
+        });
+    }
+</script>
+{% endblock %}

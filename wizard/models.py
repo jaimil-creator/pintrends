@@ -10,7 +10,9 @@ class Project(models.Model):
     
     def get_current_stage(self):
         """Returns the current stage of the project workflow."""
-        if self.article_ideas.exists() or self.pin_ideas.exists():
+        if self.blog_posts.exists():
+            return 'blog'
+        elif self.article_ideas.exists() or self.pin_ideas.exists():
             return 'export'
         elif self.expanded_keywords.exists():
             return 'content'
@@ -32,7 +34,8 @@ class Project(models.Model):
             'suggestions': 'Fetch Suggestions',
             'expansion': 'Expand Keywords',
             'content': 'Generate Content',
-            'export': 'Export Ready'
+            'export': 'Export Ready',
+            'blog': 'Blog Generation'
         }
         return stages.get(stage, 'Unknown')
     
@@ -46,7 +49,8 @@ class Project(models.Model):
             'suggestions': 'wizard:suggestion_fetch',
             'expansion': 'wizard:expansion',
             'content': 'wizard:content_gen',
-            'export': 'wizard:export'
+            'export': 'wizard:export',
+            'blog': 'wizard:blog_gen'
         }
         url_name = url_names.get(stage, 'wizard:trend_fetch')
         return reverse(url_name, kwargs={'project_id': self.id})
@@ -60,6 +64,7 @@ class Project(models.Model):
             'expanded_count': self.expanded_keywords.count(),
             'articles_count': self.article_ideas.count(),
             'pins_count': self.pin_ideas.count(),
+            'blogs_count': self.blog_posts.count(),
             'total_content': self.article_ideas.count() + self.pin_ideas.count()
         }
 
@@ -127,3 +132,59 @@ class PinIdea(models.Model):
 
     def __str__(self):
         return self.title
+
+class BlogPost(models.Model):
+    """Represents a complete AI-generated blog post with images."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='blog_posts')
+    article_idea = models.ForeignKey(ArticleIdea, on_delete=models.CASCADE, related_name='blog_posts')
+    
+    # Content
+    topic = models.CharField(max_length=500)  # From article title
+    intro = models.TextField()
+    conclusion = models.TextField()
+    thumbnail_url = models.URLField(max_length=500, blank=True)
+    thumbnail_prompt = models.TextField(blank=True)
+    
+    # JSON Content Storage
+    structured_content = models.JSONField(default=dict, blank=True)
+    
+    # Files
+    docx_file = models.FileField(upload_to='blog_exports/', blank=True, null=True)
+    json_file = models.FileField(upload_to='blog_exports/', blank=True, null=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    generation_status = models.CharField(
+        max_length=20, 
+        default='pending',
+        choices=[
+            ('pending', 'Pending'),
+            ('generating', 'Generating'),
+            ('completed', 'Completed'),
+            ('failed', 'Failed')
+        ]
+    )
+    error_message = models.TextField(blank=True)
+    
+    def __str__(self):
+        return f"Blog: {self.topic}"
+    
+    def get_section_count(self):
+        return self.sections.count()
+
+class BlogSection(models.Model):
+    """Represents a numbered section within a blog post."""
+    blog_post = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name='sections')
+    
+    # Content
+    order = models.IntegerField()  # 1, 2, 3...
+    title = models.CharField(max_length=500)
+    description = models.TextField()
+    image_url = models.URLField(max_length=500, blank=True)
+    image_prompt = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.order}. {self.title}"

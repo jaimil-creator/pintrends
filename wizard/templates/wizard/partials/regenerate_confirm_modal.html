@@ -1,0 +1,81 @@
+<!-- Regeneration Confirmation Modal -->
+<div id="regenerate-confirm-modal"
+    class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    onclick="this.classList.add('hidden')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 animate-fadeIn" onclick="event.stopPropagation()">
+        <!-- Icon -->
+        <div class="flex justify-center mb-4">
+            <div class="bg-orange-100 rounded-full p-4">
+                <i class="bi bi-arrow-clockwise text-orange-600 text-4xl"></i>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h3 class="text-2xl font-bold text-center text-gray-900 mb-3">Regenerate Blog?</h3>
+
+        <!-- Message -->
+        <p class="text-gray-600 text-center mb-6">
+            This will create completely new content and images. The current blog will be replaced and cannot be
+            recovered.
+        </p>
+
+        <!-- Actions -->
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('regenerate-confirm-modal').classList.add('hidden')"
+                class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-full transition-colors">
+                Cancel
+            </button>
+            <button id="confirm-regenerate-btn" hx-disabled-elt="this"
+                class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <span class="htmx-indicator hidden animate-spin mr-2">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </span>
+                <span class="htmx-indicator hidden">Regenerating...</span>
+                <span class="htmx-request-remove"><i class="bi bi-arrow-clockwise"></i> Regenerate</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.2s ease-out;
+    }
+</style>
+
+<script>
+    // Function to show regeneration confirmation modal
+    function showRegenerateConfirm(blogPostId) {
+        const modal = document.getElementById('regenerate-confirm-modal');
+        const confirmBtn = document.getElementById('confirm-regenerate-btn');
+
+        // Set up the confirm button to trigger HTMX request
+        confirmBtn.setAttribute('hx-post', `/blog/${blogPostId}/regenerate/`);
+        confirmBtn.setAttribute('hx-target', 'closest div.bg-white');
+        confirmBtn.setAttribute('hx-swap', 'outerHTML');
+        confirmBtn.setAttribute('hx-indicator', '#confirm-regenerate-btn');
+
+        // Initialize HTMX on the button
+        htmx.process(confirmBtn);
+
+        // Show modal
+        modal.classList.remove('hidden');
+
+        // Close modal after confirming
+        confirmBtn.addEventListener('click', function () {
+            modal.classList.add('hidden');
+        }, { once: true });
+    }
+</script>

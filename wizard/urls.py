@@ -40,8 +40,17 @@ urlpatterns = [
     path('pin/<int:pin_id>/edit/', views.edit_pin_htmx, name='edit_pin'),
     path('pin/<int:pin_id>/update/', views.update_pin_htmx, name='update_pin'),
     
-    # Step 6: Export
     path('<int:project_id>/export/', views.ExportView.as_view(), name='export'),
     path('<int:project_id>/export/csv/', views.export_csv, name='export_csv'),
     path('<int:project_id>/export/json/', views.export_json, name='export_json'),
+    
+    # Step 7: Blog Generation
+    path('<int:project_id>/blog/', views.BlogGenView.as_view(), name='blog_gen'),
+    path('article/<int:article_id>/generate-blog/', views.generate_blog_htmx, name='generate_blog_htmx'),
+    path('blog/<int:blog_id>/regenerate/', views.regenerate_blog_htmx, name='regenerate_blog_htmx'),
+    path('blog/<int:blog_id>/detail/', views.blog_detail_htmx, name='blog_detail_htmx'),
+    path('blog/<int:blog_id>/edit/', views.blog_edit, name='blog_edit'),
+    path('blog/<int:blog_id>/update/', views.blog_update, name='blog_update'),
+    path('blog/<int:blog_id>/export/docx/', views.export_blog_docx, name='export_blog_docx'),
+    path('blog/<int:blog_id>/export/json/', views.export_blog_json, name='export_blog_json'),
 ]
