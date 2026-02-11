@@ -1,0 +1,115 @@
+{% extends "wizard/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="flex gap-0 -mx-4 sm:-mx-6 lg:-mx-8">
+
+    <!-- Left Sidebar -->
+    <aside
+        class="w-64 shrink-0 sticky top-24 self-start h-[calc(100vh-7rem)] border-r border-gray-100 bg-white overflow-y-auto custom-scrollbar">
+
+        <!-- Project Header -->
+        <div class="px-5 py-5 border-b border-gray-100">
+            <div class="flex items-center gap-3 mb-1">
+                <div
+                    class="w-9 h-9 rounded-xl bg-gradient-to-br from-pinterest-red to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                    {{ project.name|truncatechars:2|upper }}
+                </div>
+                <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-gray-900 truncate">{{ project.name }}</h3>
+                    {% if project.niche %}
+                    <p class="text-xs text-gray-400 truncate">{{ project.niche }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="px-3 py-4 space-y-1">
+            <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-300">Workflow</p>
+
+            <a href="{% url 'wizard:trend_fetch' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'trends' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-graph-up-arrow text-base"></i>
+                <span>Trends</span>
+            </a>
+
+            <a href="{% url 'wizard:keyword_review' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'review' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-check2-square text-base"></i>
+                <span>Keyword Review</span>
+            </a>
+
+            <a href="{% url 'wizard:suggestion_fetch' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'suggestions' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-lightbulb text-base"></i>
+                <span>Suggestions</span>
+            </a>
+
+            <a href="{% url 'wizard:expansion' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'expansion' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-arrows-expand text-base"></i>
+                <span>Expansion</span>
+            </a>
+
+            <a href="{% url 'wizard:content_gen' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'content' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-pencil-square text-base"></i>
+                <span>Content Gen</span>
+            </a>
+
+            <a href="{% url 'wizard:blog_gen' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'blog_gen' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-file-earmark-text text-base"></i>
+                <span>Blog Gen</span>
+            </a>
+
+            <a href="{% url 'wizard:export' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'export' %}bg-gray-100 text-gray-900{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-download text-base"></i>
+                <span>Export</span>
+            </a>
+
+            <!-- Divider -->
+            <div class="!my-4 border-t border-gray-100"></div>
+            <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-300">Publish</p>
+
+            <a href="{% url 'wizard:blog_setup' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'blog_setup' %}bg-pinterest-red/10 text-pinterest-red font-semibold{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-file-earmark-richtext text-base"></i>
+                <span>Blog Setup</span>
+            </a>
+
+            <a href="{% url 'wizard:pin_setup' project.id %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                {% if active_sidebar == 'pin_setup' %}bg-pinterest-red/10 text-pinterest-red font-semibold{% else %}text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %}">
+                <i class="bi bi-pin-angle text-base"></i>
+                <span>Pin Setup</span>
+            </a>
+        </nav>
+
+        <!-- Back to Dashboard -->
+        <div class="px-3 pb-6 mt-auto">
+            <a href="{% url 'wizard:dashboard' %}"
+                class="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all">
+                <i class="bi bi-arrow-left text-sm"></i>
+                <span>All Projects</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 min-w-0 px-6 lg:px-10 py-6">
+        {% block project_content %}
+        {% endblock %}
+    </div>
+</div>
+{% endblock %}

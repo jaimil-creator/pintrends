@@ -42,7 +42,7 @@
                                 <i class="bi bi-pencil"></i> Edit
                             </button>
                             <button class="text-xs font-bold text-gray-400 hover:text-gray-900 flex items-center gap-1"
-                                onclick="navigator.clipboard.writeText('{{ article.title }}'); this.innerHTML = '<i class=\'bi bi-check\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy', 2000);">
+                                onclick="navigator.clipboard.writeText('{{ article.title|escapejs }}'); this.innerHTML = '<i class=\'bi bi-check\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy', 2000);">
                                 <i class="bi bi-clipboard"></i> Copy
                             </button>
                         </div>
@@ -85,7 +85,7 @@
                                 </button>
                                 <button
                                     class="text-xs font-bold text-gray-400 hover:text-gray-900 flex items-center gap-1"
-                                    onclick="navigator.clipboard.writeText('{{ pin.title }}\n\n{{ pin.description }}'); this.innerHTML = '<i class=\'bi bi-check\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy', 2000);">
+                                    onclick="navigator.clipboard.writeText('{{ pin.title|escapejs }}\n\n{{ pin.description|escapejs }}'); this.innerHTML = '<i class=\'bi bi-check\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy Content', 2000);">
                                     <i class="bi bi-clipboard"></i> Copy Content
                                 </button>
                             </div>

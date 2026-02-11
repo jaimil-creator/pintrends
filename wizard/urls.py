@@ -53,4 +53,12 @@ urlpatterns = [
     path('blog/<int:blog_id>/update/', views.blog_update, name='blog_update'),
     path('blog/<int:blog_id>/export/docx/', views.export_blog_docx, name='export_blog_docx'),
     path('blog/<int:blog_id>/export/json/', views.export_blog_json, name='export_blog_json'),
+    path('blog/<int:blog_id>/toggle-selection/', views.toggle_blog_selection_htmx, name='toggle_blog_selection_htmx'),
+    
+    # Blog Setup & Pin Setup (Project Sidebar)
+    path('<int:project_id>/blog-setup/', views.BlogSetupView.as_view(), name='blog_setup'),
+    path('<int:project_id>/blog/publish/', views.publish_blog_api, name='publish_blog_api'),
+    path('<int:project_id>/pin-setup/', views.PinSetupView.as_view(), name='pin_setup'),
+    path('<int:project_id>/pin-setup/generate-images/', views.generate_pin_images, name='generate_pin_images'),
+    path('<int:project_id>/pin-setup/post-pinterest/', views.post_pins_pinterest, name='post_pins_pinterest'),
 ]

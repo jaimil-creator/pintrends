@@ -1,0 +1,390 @@
+{% extends "wizard/project_base.html" %}
+
+{% block title %}Blog Setup - {{ project.name }} | PinTrends{% endblock %}
+
+{% block project_content %}
+<div class="h-[calc(100vh-140px)] flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4 px-6 pt-2">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Blog Editor</h1>
+            <p class="text-sm text-gray-400">Edit JSON and Publish</p>
+        </div>
+
+        <!-- URL Slug Input -->
+        <div class="flex-1 mx-8 max-w-2xl">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i class="bi bi-link-45deg text-gray-400 text-lg"></i>
+                </div>
+                <input type="text" id="url-slug"
+                    class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-pinterest-red focus:border-pinterest-red"
+                    placeholder="e.g., summer-outfit-guide" value="{{ blog_post.slug|default_if_none:'' }}">
+            </div>
+            <p class="mt-1 text-xs text-gray-500">URL Slug for the endpoint</p>
+        </div>
+
+        <div class="flex items-center gap-3 self-start">
+            <button onclick="formatJSON()" class="text-gray-500 hover:text-gray-700 font-medium text-sm px-3 py-2">
+                <i class="bi bi-code-slash mr-1"></i> Format
+            </button>
+            <button onclick="copyJSON()" class="text-gray-500 hover:text-gray-700 font-medium text-sm px-3 py-2">
+                <i class="bi bi-clipboard mr-1"></i> Copy
+            </button>
+            <button onclick="publishBlog()" id="publish-btn"
+                class="inline-flex items-center gap-2 px-6 py-2.5 bg-pinterest-red text-white text-sm font-bold rounded-full hover:bg-[#ad081b] transition-colors shadow-sm">
+                <i class="bi bi-cloud-upload"></i>
+                Publish
+            </button>
+        </div>
+    </div>
+
+    {% if blog_json %}
+    <!-- Split Screen Editor -->
+    <div class="flex-1 flex gap-6 px-6 pb-6 overflow-hidden">
+        <!-- Left: JSON Editor -->
+        <div class="w-1/2 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">JSON Source</span>
+                <span class="text-xs text-gray-400">Editable</span>
+            </div>
+            <div id="json-editor" class="flex-1 text-sm font-mono"></div>
+        </div>
+
+        <!-- Right: Live Preview -->
+        <div class="w-1/2 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Live Preview</span>
+                <span class="text-xs text-gray-400">Read-only</span>
+            </div>
+            <div id="preview-container" class="flex-1 overflow-y-auto p-8 bg-white prose max-w-none">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="flex-1 flex items-center justify-center p-6">
+        <div class="text-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 w-full max-w-2xl">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                <i class="bi bi-check-circle text-3xl text-gray-300"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-700 mb-2">No Blog Selected</h3>
+            <p class="text-sm text-gray-400 mb-6 max-w-sm mx-auto">Please go to Blog Generation and select a blog to
+                edit.</p>
+            <a href="{% url 'wizard:blog_gen' project.id %}"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-colors shadow-sm">
+                <i class="bi bi-arrow-left"></i>
+                Go to Blog Generation
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Styles for Preview -->
+<style>
+    /* BLOG_GEN Replicated Styles */
+    #preview-container {
+        @apply bg-white p-6 font-[system-ui];
+        color: #111;
+        line-height: 1.6;
+    }
+
+    /* Blog Header */
+    #preview-container .blog-header-section {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 40px auto;
+    }
+
+    #preview-container .blog-header-section h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: #111;
+        line-height: 1.2;
+    }
+
+    #preview-container .blog-header-section p {
+        font-size: 16px;
+        color: #333;
+        line-height: 1.6;
+    }
+
+    /* Blog Linear Layout */
+    #preview-container .blog-linear-layout {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    #preview-container .blog-linear-item {
+        margin-bottom: 50px;
+    }
+
+    #preview-container .blog-linear-item h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #111;
+        line-height: 1.3;
+        text-align: left;
+    }
+
+    #preview-container .blog-linear-item img {
+        width: 100%;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: block;
+    }
+
+    #preview-container .blog-linear-item img:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    #preview-container .blog-linear-item p {
+        font-size: 16px;
+        line-height: 1.7;
+        color: #333;
+        text-align: left;
+        margin-bottom: 12px;
+    }
+
+    /* Conclusion */
+    #preview-container .conclusion-section {
+        max-width: 800px;
+        margin: 60px auto;
+        text-align: center;
+        padding: 40px;
+        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+        border-radius: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #preview-container .conclusion-section h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #111;
+    }
+
+    #preview-container .conclusion-section p {
+        font-size: 16px;
+        line-height: 1.7;
+        color: #333;
+    }
+
+    /* CTA Button (Extra) */
+    #preview-container .cta-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 24px;
+        background-color: #000;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 24px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+        margin-top: 10px;
+    }
+
+    #preview-container .cta-button:hover {
+        background-color: #333;
+    }
+</style>
+
+<!-- Ace Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
+<script>
+    let editor;
+    {% if blog_json %}
+    const initialJson = {{ blog_json| safe }};
+    {% else %}
+    const initialJson = {};
+    {% endif %}
+    const blogId = "{{ blog_post.id }}";
+    const projectId = "{{ project.id }}";
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!document.getElementById('json-editor')) return;
+
+        // Initialize Ace Editor
+        editor = ace.edit("json-editor");
+        editor.setTheme("ace/theme/chrome");
+        editor.session.setMode("ace/mode/json");
+        editor.setValue(JSON.stringify(initialJson, null, 2), -1);
+        editor.setOptions({
+            fontSize: "14px",
+            showPrintMargin: false,
+            wrap: true
+        });
+
+        // Update preview on change
+        editor.session.on('change', function () {
+            try {
+                const json = JSON.parse(editor.getValue());
+                updatePreview(json);
+            } catch (e) {
+                // Ignore parse errors while typing
+            }
+        });
+
+        // Initial preview
+        updatePreview(initialJson);
+    });
+
+    function formatJSON() {
+        try {
+            const val = JSON.parse(editor.getValue());
+            editor.setValue(JSON.stringify(val, null, 2), -1);
+        } catch (e) {
+            alert("Invalid JSON");
+        }
+    }
+
+    function copyJSON() {
+        navigator.clipboard.writeText(editor.getValue())
+            .then(() => alert("Copied to clipboard!"))
+            .catch(err => console.error('Failed to copy', err));
+    }
+
+    function updatePreview(data) {
+        const container = document.getElementById('preview-container');
+        if (!container) return;
+
+        let html = '';
+
+        // --- 1. Header Section ---
+        html += `<div class="blog-header-section">`;
+        if (data.title) html += `<h1>${data.title}</h1>`;
+
+        if (data.description) {
+            if (Array.isArray(data.description)) {
+                data.description.forEach(p => html += `<p>${p}</p>`);
+            } else {
+                html += `<p>${data.description}</p>`;
+            }
+        }
+        html += `</div>`;
+
+        // --- 2. Blog Linear Layout (Features) ---
+        html += `<div class="blog-linear-layout">`;
+
+        if (data.features && Array.isArray(data.features)) {
+            data.features.forEach((feature, index) => {
+                html += `<div class="blog-linear-item">`;
+
+                // Title
+                const titleText = feature.title || '';
+                html += `<h2>${index + 1}. ${titleText}</h2>`;
+
+                // Image
+                if (feature.image_url) {
+                    html += `<img src="${feature.image_url}" alt="${feature.alt || titleText}">`;
+                }
+
+                // Description
+                if (feature.description) {
+                    if (Array.isArray(feature.description)) {
+                        feature.description.forEach(p => html += `<p>${p}</p>`);
+                    } else {
+                        html += `<p>${feature.description}</p>`;
+                    }
+                }
+
+                // CTA Button (if present)
+                if (feature.button_text && feature.button_url) {
+                    html += `<a href="${feature.button_url}" target="_blank" class="cta-button">
+                                ${feature.button_text} <i class="bi bi-arrow-right ml-2"></i>
+                             </a>`;
+                }
+
+                html += `</div>`; // End Item
+            });
+        }
+
+        html += `</div>`; // End Linear Layout
+
+        // --- 3. Conclusion Section ---
+        if (data.conclusion) {
+            html += `<div class="conclusion-section">`;
+            html += `<h2>Conclusion</h2>`;
+            if (Array.isArray(data.conclusion)) {
+                data.conclusion.forEach(p => html += `<p>${p}</p>`);
+            } else {
+                html += `<p>${data.conclusion}</p>`;
+            }
+            html += `</div>`;
+        }
+
+        container.innerHTML = html;
+    }
+
+    async function publishBlog() {
+        const slug = document.getElementById('url-slug').value.trim();
+        if (!slug) {
+            alert("Please enter a URL Slug");
+            return;
+        }
+
+        const btn = document.getElementById('publish-btn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="bi bi-hourglass-split animate-spin"></i> Publishing...`;
+
+        try {
+            const jsonContent = editor.getValue();
+            // Validate JSON
+            JSON.parse(jsonContent);
+
+            // Encode content to Base64 to match app.py logic
+            // Note: JS btoa handles ASCII. For UTF-8, we need detailed handling, but let's stick to standard text for now.
+            // Using a text encoder for better safety
+            const encoder = new TextEncoder();
+            const data = encoder.encode(jsonContent);
+            const base64Content = btoa(String.fromCharCode(...new Uint8Array(data)));
+
+            // Actually, simply sending the JSON string as is usually preferred, but app.py expects payload['content'] to be base64.
+            // Let's stick to the app.py reference logic.
+            // app.py: decoded = base64.b64decode(data['content']).decode('utf-8')
+
+            // Simpler JS compatible base64 encode for UTF8:
+            const b64 = btoa(unescape(encodeURIComponent(jsonContent)));
+
+            const response = await fetch("{% url 'wizard:publish_blog_api' project.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    slug: slug,
+                    content: b64, // The API expects content to be base64 encoded
+                    blog_id: blogId
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert("✅ Successfully Published!");
+            } else {
+                alert("❌ Publish Failed: " + (result.error || "Unknown error"));
+                console.error(result);
+            }
+
+        } catch (e) {
+            alert("❌ Error: " + e.message);
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+</script>
+{% endblock %}

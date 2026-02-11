@@ -1,4 +1,14 @@
-<div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+<div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6 relative group/card">
+    <button hx-post="{% url 'wizard:toggle_blog_selection_htmx' blog_post.id %}" hx-target="closest .bg-white"
+        hx-swap="outerHTML"
+        class="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 {% if blog_post.is_selected %}bg-green-500 text-white shadow-md{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}"
+        title="{% if blog_post.is_selected %}Selected{% else %}Add to Blog Setup{% endif %}">
+        {% if blog_post.is_selected %}
+        <i class="bi bi-check-lg text-lg"></i>
+        {% else %}
+        <i class="bi bi-plus-lg text-lg"></i>
+        {% endif %}
+    </button>
     <div class="flex items-start gap-4 mb-4">
         {% if blog_post.thumbnail_url %}
         <img src="{{ blog_post.thumbnail_url }}" alt="{{ blog_post.topic }}" class="w-32 h-20 object-cover rounded-lg">
@@ -33,10 +43,7 @@
             <i class="bi bi-eye"></i> Preview
         </button>
 
-        <a href="{% url 'wizard:blog_edit' blog_post.id %}"
-            class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-2 px-3 rounded-full transition-colors text-xs text-center">
-            <i class="bi bi-pencil-square"></i> Edit
-        </a>
+
 
         <button onclick="showRegenerateConfirm({{ blog_post.id }})"
             class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold py-2 px-3 rounded-full transition-colors text-xs">
@@ -52,5 +59,7 @@
             class="flex-1 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2 px-3 rounded-full transition-colors text-xs text-center">
             <i class="bi bi-code-square"></i> JSON
         </a>
+
+
     </div>
 </div>

@@ -1,8 +1,8 @@
-{% extends 'wizard/base.html' %}
+{% extends "wizard/project_base.html" %}
 
 {% block title %}Step 7: Blog Generation - {{ project.name }}{% endblock %}
 
-{% block content %}
+{% block project_content %}
 <div class="max-w-[1600px] mx-auto pb-24 px-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-center mb-6 pt-4 gap-4">
@@ -10,15 +10,7 @@
             <h2 class="text-3xl font-bold mb-1">✨ AI Blog Generation</h2>
             <p class="text-gray-500">Create complete blogs with AI-generated images</p>
         </div>
-        <div class="flex items-center gap-4">
-            <form method="post" class="inline-block">
-                {% csrf_token %}
-                <button type="submit" name="proceed" value="1"
-                    class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-8 rounded-full transition-transform transform active:scale-95 flex items-center gap-2">
-                    Skip <i class="bi bi-arrow-right"></i>
-                </button>
-            </form>
-        </div>
+
     </div>
 
     <!-- Stats -->
@@ -91,20 +83,20 @@
                     {% endif %}
                 </div>
 
-                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <span class="text-xs text-gray-500">
+                <div class="flex items-center justify-between gap-3 pt-4 border-t border-gray-100">
+                    <span class="text-xs text-gray-500 truncate min-w-0">
                         <i class="bi bi-tag"></i> {{ article.expanded_keyword.keyword }}
                     </span>
 
                     {% if article.blog_posts.exists %}
-                    <span class="text-green-600 text-sm font-medium">
+                    <span class="text-green-600 text-xs font-medium whitespace-nowrap shrink-0">
                         <i class="bi bi-check-circle-fill"></i> Generated
                     </span>
                     {% else %}
                     <button hx-post="{% url 'wizard:generate_blog_htmx' article.id %}" hx-target="#blog-results"
                         hx-swap="afterbegin" hx-indicator="#loading-indicator-{{ article.id }}"
-                        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-2 px-4 rounded-full text-sm transition-all flex items-center gap-2">
-                        <i class="bi bi-stars"></i> Generate Blog
+                        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-semibold py-1.5 px-3 rounded-full text-xs transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                        <i class="bi bi-stars text-[10px]"></i> Generate
                     </button>
                     {% endif %}
                 </div>

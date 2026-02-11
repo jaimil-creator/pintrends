@@ -128,10 +128,39 @@ class PinIdea(models.Model):
     title = models.CharField(max_length=500)
     description = models.TextField()
     
+    # Image generation
+    image_url = models.URLField(max_length=500, blank=True)
+    image_prompt = models.TextField(blank=True)
+    
+    # Pinterest posting
+    pinterest_url = models.URLField(max_length=500, blank=True)
+    posted_at = models.DateTimeField(null=True, blank=True)
+    
+    # Scheduling
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        default='draft',
+        choices=[
+            ('draft', 'Draft'),
+            ('scheduled', 'Scheduled'),
+            ('posted', 'Posted'),
+            ('failed', 'Failed')
+        ]
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
+    
+    @property
+    def has_image(self):
+        return bool(self.image_url)
+    
+    @property
+    def is_posted(self):
+        return self.status == 'posted'
 
 class BlogPost(models.Model):
     """Represents a complete AI-generated blog post with images."""
@@ -165,6 +194,8 @@ class BlogPost(models.Model):
         ]
     )
     error_message = models.TextField(blank=True)
+    is_selected = models.BooleanField(default=False)
+    slug = models.SlugField(max_length=500, blank=True, null=True)
     
     def __str__(self):
         return f"Blog: {self.topic}"

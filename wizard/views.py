@@ -1,8 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import TemplateView, CreateView, View
+from django.http import HttpResponse, JsonResponse
+from django.conf import settings
+from django.contrib import messages
+from django.utils import timezone
+from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+import json
+import requests
+import base64
+from django.template.loader import render_to_string
 from django.views.generic import CreateView, TemplateView, View
 from django.urls import reverse
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
 from .models import Project, TrendKeyword, Suggestion, ExpandedKeyword, Content, ArticleIdea, PinIdea, BlogPost, BlogSection
 
 # ... (rest of imports)
@@ -147,8 +159,12 @@ class TrendFetchView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project_id = self.kwargs['project_id']
-        context['project'] = get_object_or_404(Project, pk=project_id)
+        project = get_object_or_404(Project, pk=project_id)
+        context['project'] = project
         context['trends'] = TrendKeyword.objects.filter(project_id=project_id)
+        context['active_sidebar'] = 'trends'
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
     
     def post(self, request, *args, **kwargs):
@@ -215,10 +231,14 @@ class KeywordReviewView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project_id = self.kwargs['project_id']
-        context['project'] = get_object_or_404(Project, pk=project_id)
+        project = get_object_or_404(Project, pk=project_id)
+        context['project'] = project
         context['selected_keywords'] = TrendKeyword.objects.filter(
             project_id=project_id, selected=True
         )
+        context['active_sidebar'] = 'review'
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
     
     def post(self, request, *args, **kwargs):
@@ -255,11 +275,15 @@ class SuggestionFetchView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project_id = self.kwargs['project_id']
-        context['project'] = get_object_or_404(Project, pk=project_id)
+        project = get_object_or_404(Project, pk=project_id)
+        context['project'] = project
         context['base_keywords'] = TrendKeyword.objects.filter(
             project_id=project_id, selected=True
         )
         context['suggestions'] = Suggestion.objects.filter(project_id=project_id)
+        context['active_sidebar'] = 'suggestions'
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
     
     def post(self, request, *args, **kwargs):
@@ -321,6 +345,9 @@ class ExpansionView(TemplateView):
         context['base_keywords'] = TrendKeyword.objects.filter(project=project, selected=True)
         context['suggestions'] = Suggestion.objects.filter(project=project)
         
+        context['active_sidebar'] = 'expansion'
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
     
     def post(self, request, *args, **kwargs):
@@ -392,10 +419,11 @@ def toggle_expanded_keyword_htmx(request, project_id, keyword_id):
     kw.selected = not kw.selected
     kw.save()
     
-    # Return a button/icon state or just the updated card class (optional)
-    # For now, we'll simpler return a 200 OK and handle visual toggle in client or re-render a tiny part
-    # But to make it robust, let's return a simple icon swap or just an OK status and let client class toggle
-    return HttpResponse("")
+    # Return updated card
+    return render(request, 'wizard/partials/keyword_card.html', {
+        'kw': kw,
+        'project': kw.project
+    })
 
 
 # ============= STEP 5: Content Generation =============
@@ -416,6 +444,9 @@ class ContentGenView(TemplateView):
         
         # Calculate stats
         context['generated_count'] = ArticleIdea.objects.filter(project=project).count() + PinIdea.objects.filter(project=project).count()
+        context['active_sidebar'] = 'content'
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
     
     def post(self, request, *args, **kwargs):
@@ -510,13 +541,23 @@ def generate_content_htmx(request, project_id):
             project=project, selected=True
         ).prefetch_related('article_ideas', 'pin_ideas')
         
-        return render(request, 'wizard/partials/content_list.html', {
+        # Render content list
+        content_html = render_to_string('wizard/partials/content_list.html', {
             'project': project,
             'keywords_with_content': keywords_with_content,
             'total_generated': generated_count,
             'article_count': article_count,
             'pin_count': pin_count
-        })
+        }, request=request)
+        
+        # Render button (OOB swap)
+        # generated_count here tracks keywords processed. If > 0, we have content.
+        button_html = render_to_string('wizard/partials/generate_button.html', {
+            'project': project,
+            'generated_count': generated_count
+        }, request=request)
+        
+        return HttpResponse(content_html + button_html)
         
     except Exception as e:
         return render(request, 'wizard/partials/error.html', {'error': str(e)})
@@ -533,6 +574,9 @@ class ExportView(TemplateView):
         context['keywords_with_content'] = ExpandedKeyword.objects.filter(
             project=project, selected=True
         ).prefetch_related('article_ideas', 'pin_ideas')
+        context['active_sidebar'] = 'export'
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
 
 def export_csv(request, project_id):
@@ -661,6 +705,9 @@ class BlogGenView(TemplateView):
             project=project
         ).prefetch_related('sections').order_by('-created_at')
         
+        context['active_sidebar'] = 'blog_gen'
+        context['blog_count'] = context['blog_posts'].count()
+        context['pin_count'] = PinIdea.objects.filter(project=project).count()
         return context
     
     def post(self, request, *args, **kwargs):
@@ -679,6 +726,7 @@ def generate_blog_htmx(request, article_id):
     import traceback
     
     article = get_object_or_404(ArticleIdea, pk=article_id)
+    from django.views.decorators.http import require_POST
     project = article.project
     
     # Create blog post record
@@ -812,6 +860,17 @@ def generate_blog_htmx(request, article_id):
 def blog_detail_htmx(request, blog_id):
     """HTMX endpoint - Show blog preview."""
     blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    return render(request, 'wizard/partials/blog_detail_modal.html', {'blog': blog_post})
+
+@require_POST
+def toggle_blog_selection_htmx(request, blog_id):
+    """HTMX endpoint - Toggle blog selection status."""
+    blog = get_object_or_404(BlogPost, pk=blog_id)
+    blog.is_selected = not blog.is_selected
+    blog.save()
+    
+    # Return updated card
+    return render(request, 'wizard/partials/blog_card.html', {'blog_post': blog})
     
     return render(request, 'wizard/partials/blog_preview.html', {
         'blog_post': blog_post,
@@ -1184,3 +1243,287 @@ def export_blog_json(request, blog_id):
     except Exception as e:
         print(f"Error serving JSON export: {e}")
         return HttpResponse(f"Error serving JSON: {str(e)}", status=500)
+
+
+# ============= Blog Setup & Pin Setup =============
+
+class BlogSetupView(TemplateView):
+    """Project-specific blog management page."""
+    template_name = 'wizard/blog_setup.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project_id = self.kwargs['project_id']
+        project = get_object_or_404(Project, pk=project_id)
+        context['project'] = project
+        context['active_sidebar'] = 'blog_setup'
+        
+        # Get the most recent SELECTED blog post
+        blog_post = BlogPost.objects.filter(
+            project=project,
+            is_selected=True
+        ).order_by('-created_at').first()
+        
+        context['blog_post'] = blog_post
+        
+        if blog_post:
+            # Construct standard JSON payload structure
+            json_payload = {
+                "id": f"pinterest-blog-{blog_post.id}",
+                "title": blog_post.topic,
+                "thumbnail_url": blog_post.thumbnail_url,
+                "alt": f"{blog_post.topic} thumbnail",
+                "description": [blog_post.intro],
+                "metadata": {
+                    "title": blog_post.topic,
+                    "description": [blog_post.intro]
+                },
+                "features": [
+                    {
+                        "title": section.title,
+                        "image_url": section.image_url,
+                        "alt": section.title,
+                        "button_text": "Try Now",
+                        "button_url": "https://www.dressr.ai/clothes-swap",
+                        "description": [section.description]
+                    }
+                    for section in blog_post.sections.all()
+                ],
+                "conclusion": [blog_post.conclusion],
+                "publish_button_text": "Publish"
+            }
+            context['blog_json'] = json.dumps(json_payload, indent=2)
+            
+        return context
+
+@csrf_exempt
+@require_POST
+def publish_blog_api(request, project_id):
+    """Proxy endpoint to publish JSON to external API via backend."""
+    try:
+        data = json.loads(request.body)
+        slug = data.get('slug')
+        content = data.get('content') # Base64 encoded JSON
+        blog_id = data.get('blog_id')
+        
+        if not slug:
+            return JsonResponse({'error': 'Slug is required'}, status=400)
+        
+        if not content:
+            return JsonResponse({'error': 'Content is required'}, status=400)
+            
+        # Update local blog post slug
+        if blog_id:
+            try:
+                blog_post = BlogPost.objects.get(pk=blog_id, project_id=project_id)
+                blog_post.slug = slug
+                blog_post.save()
+            except BlogPost.DoesNotExist:
+                pass # Continue publishing even if local update fails (shouldn't happen)
+
+        # External API payload
+        payload = {
+            'category': "",
+            'content': content,
+            'slug': slug
+        }
+        
+        # Make request to external API
+        # Using a timeout to prevent hanging
+        response = requests.post(
+            'https://core.deepswapper.com/publish/dressr',
+            json=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        if response.ok:
+            try:
+                api_response = response.json() if response.content else {}
+            except Exception:
+                api_response = {'raw_response': response.text}
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Published successfully',
+                'slug': slug,
+                'response': api_response
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': f'API returned status {response.status_code}',
+                'details': response.text
+            }, status=response.status_code)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({'error': f'Failed to connect to API: {str(e)}'}, status=502)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+class PinSetupView(TemplateView):
+    """Project-specific pin management page."""
+    template_name = 'wizard/pin_setup.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project_id = self.kwargs['project_id']
+        project = get_object_or_404(Project, pk=project_id)
+        context['project'] = project
+        context['active_sidebar'] = 'pin_setup'
+        context['pin_ideas'] = PinIdea.objects.filter(
+            project=project
+        ).select_related('expanded_keyword').order_by('-created_at')
+        context['blog_count'] = BlogPost.objects.filter(project=project).count()
+        context['pin_count'] = context['pin_ideas'].count()
+        
+        # Check for credentials or existing session
+        import os
+        from pathlib import Path
+        
+        # Path to auth.json (same as in service)
+        auth_file = Path(__file__).resolve().parent.parent.parent / 'auth.json'
+        has_session = auth_file.exists()
+        has_creds = bool(os.getenv('PINTEREST_EMAIL') and os.getenv('PINTEREST_PASSWORD'))
+        
+        context['using_session'] = has_session
+        context['missing_credentials'] = not (has_session or has_creds)
+        
+        return context
+
+
+def generate_pin_images(request, project_id):
+    """API endpoint - Generate images for selected pin ideas."""
+    from .services.blog_generator import BlogGeneratorService
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        pin_ids = data.get('pin_ids', [])
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse({'success': False, 'error': 'Invalid request body'}, status=400)
+    
+    if not pin_ids:
+        return JsonResponse({'success': False, 'error': 'No pins selected'}, status=400)
+    
+    project = get_object_or_404(Project, pk=project_id)
+    pins = PinIdea.objects.filter(id__in=pin_ids, project=project)
+    
+    if not pins.exists():
+        return JsonResponse({'success': False, 'error': 'No matching pins found'}, status=404)
+    
+    generator = BlogGeneratorService()
+    results = []
+    
+    for pin in pins:
+        try:
+            # Generate image prompt
+            prompt = generator.generate_image_prompt(
+                title=pin.title,
+                description=pin.description,
+                prompt_type="image",
+                blog_topic=pin.expanded_keyword.keyword if pin.expanded_keyword else pin.title
+            )
+            pin.image_prompt = prompt
+            
+            # Generate image
+            image_url = generator.generate_image(prompt, aspect_ratio="2:3")
+            pin.image_url = image_url
+            pin.save()
+            
+            results.append({'id': pin.id, 'status': 'success', 'image_url': image_url})
+        except Exception as e:
+            print(f"Error generating image for pin {pin.id}: {e}")
+            results.append({'id': pin.id, 'status': 'error', 'error': str(e)})
+    
+    success_count = sum(1 for r in results if r['status'] == 'success')
+    return JsonResponse({
+        'success': True,
+        'generated': success_count,
+        'total': len(results),
+        'results': results
+    })
+
+
+def post_pins_pinterest(request, project_id):
+    """API endpoint - Post selected pins to Pinterest using automation."""
+    from .services.pinterest_automation import PinterestAutomationService
+    from django.utils import timezone
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        pin_ids = data.get('pin_ids', [])
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse({'success': False, 'error': 'Invalid request body'}, status=400)
+    
+    if not pin_ids:
+        return JsonResponse({'success': False, 'error': 'No pins selected'}, status=400)
+    
+    project = get_object_or_404(Project, pk=project_id)
+    pins = PinIdea.objects.filter(id__in=pin_ids, project=project, image_url__isnull=False).exclude(image_url='')
+    
+    if not pins.exists():
+        return JsonResponse({'success': False, 'error': 'No pins with images found. Generate images first.'}, status=400)
+    
+    # Check for scheduling
+    scheduled_time = data.get('scheduled_time')
+    if scheduled_time:
+        try:
+            # Parse time (assuming ISO format from frontend)
+            from django.utils.dateparse import parse_datetime
+            dt = parse_datetime(scheduled_time)
+            if not dt:
+                 return JsonResponse({'success': False, 'error': 'Invalid date format'}, status=400)
+            
+            # Update pins to scheduled
+            count = pins.update(scheduled_at=dt, status='scheduled')
+            
+            return JsonResponse({
+                'success': True,
+                'scheduled': True,
+                'count': count,
+                'time': scheduled_time
+            })
+        except Exception as e:
+             return JsonResponse({'success': False, 'error': f'Scheduling error: {str(e)}'}, status=500)
+
+    try:
+        service = PinterestAutomationService()
+        results = []
+        
+        for pin in pins:
+            try:
+                pinterest_url = service.post_pin(
+                    image_url=pin.image_url,
+                    title=pin.title,
+                    description=pin.description
+                )
+                pin.pinterest_url = pinterest_url or ''
+                pin.posted_at = timezone.now()
+                pin.status = 'posted'
+                pin.save()
+                results.append({'id': pin.id, 'status': 'success', 'url': pinterest_url})
+            except Exception as e:
+                print(f"Error posting pin {pin.id}: {e}")
+                pin.status = 'failed'
+                pin.save()
+                results.append({'id': pin.id, 'status': 'error', 'error': str(e)})
+        
+        success_count = sum(1 for r in results if r['status'] == 'success')
+        return JsonResponse({
+            'success': True,
+            'posted': success_count,
+            'total': len(results),
+            'results': results
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+

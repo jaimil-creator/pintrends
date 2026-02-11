@@ -1,0 +1,29 @@
+<div
+    class="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 p-6 h-full flex flex-col justify-between border-2 {% if kw.selected %}border-green-500{% else %}border-transparent hover:border-gray-200{% endif %} group relative">
+
+    <button hx-post="{% url 'wizard:toggle_expanded_keyword' project.id kw.id %}" hx-target="closest .bg-white"
+        hx-swap="outerHTML"
+        class="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 {% if kw.selected %}bg-green-500 text-white shadow-md{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}"
+        title="{% if kw.selected %}Selected{% else %}Select Keyword{% endif %}">
+        {% if kw.selected %}
+        <i class="bi bi-check-lg text-lg"></i>
+        {% else %}
+        <i class="bi bi-plus-lg text-lg"></i>
+        {% endif %}
+    </button>
+
+    <div class="mb-4 pr-6">
+        <h5 class="font-bold text-gray-900 leading-snug break-words">{{ kw.keyword }}</h5>
+    </div>
+
+    <div class="mt-2">
+        <div class="flex justify-between items-center mb-1">
+            <small class="text-xs text-gray-500 font-medium">Potential</small>
+            <small class="text-xs font-bold text-green-600">{{ kw.score }}%</small>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-400 to-green-600 h-1.5 rounded-full"
+                style="width: {{ kw.score }}%;"></div>
+        </div>
+    </div>
+</div>

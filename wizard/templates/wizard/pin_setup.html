@@ -1,0 +1,363 @@
+{% extends "wizard/project_base.html" %}
+
+{% block title %}Pin Setup - {{ project.name }} | PinTrends{% endblock %}
+
+{% block project_content %}
+<div class="max-w-6xl">
+    {% if using_session %}
+    <div class="mb-8 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+        <i class="bi bi-shield-check text-green-600"></i>
+        <div>
+            <p class="text-xs text-green-700 font-medium">
+                Using existing Pinterest session (<code>auth.json</code>). Automation is ready.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if missing_credentials %}
+    <div class="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">
+        <i class="bi bi-exclamation-triangle-fill text-yellow-600 mt-0.5"></i>
+        <div>
+            <h3 class="text-sm font-bold text-yellow-800">Pinterest Credentials Missing</h3>
+            <p class="text-sm text-yellow-700 mt-1">
+                To automate posting, please add your Pinterest email and password to your <code>.env</code> file:
+            </p>
+            <pre class="bg-yellow-100/50 p-3 rounded-lg mt-2 text-xs font-mono text-yellow-800 select-all">PINTEREST_EMAIL=your_email@example.com
+PINTEREST_PASSWORD=your_password</pre>
+            <p class="text-xs text-yellow-600 mt-2">
+                Also ensure you have run <code>playwright install chromium</code> in your terminal if not already
+                installed.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Pin Setup</h1>
+            <p class="text-sm text-gray-400 mt-1">Generate images and post pins for <span
+                    class="font-semibold text-gray-600">{{ project.name }}</span></p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="generate-images-btn" onclick="generateSelectedImages()"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-sm font-semibold rounded-full hover:from-purple-600 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled>
+                <i class="bi bi-image"></i>
+                <span>Generate Images</span>
+                <span id="selected-count" class="ml-1 bg-white/20 px-2 py-0.5 rounded-full text-xs hidden">0</span>
+            </button>
+            <button id="post-pinterest-btn" onclick="postSelectedToPinterest()"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled>
+                <i class="bi bi-send"></i>
+                Post Now
+            </button>
+            <button id="schedule-btn" onclick="openScheduleModal()"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-full hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled>
+                <i class="bi bi-calendar-event"></i>
+                Schedule
+            </button>
+        </div>
+    </div>
+
+    {% if pin_ideas %}
+    <!-- Select All Bar -->
+    <div class="flex items-center gap-4 mb-5 px-4 py-3 bg-gray-50 rounded-2xl">
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="select-all-pins" onchange="toggleSelectAll(this)"
+                class="w-4 h-4 rounded border-gray-300 text-pinterest-red focus:ring-pinterest-red/30">
+            <span class="text-sm font-medium text-gray-600">Select All</span>
+        </label>
+        <span class="text-xs text-gray-400" id="selection-info">{{ pin_ideas|length }} pin ideas available</span>
+    </div>
+
+    <!-- Pin Ideas List -->
+    <div id="pin-ideas-container" class="space-y-3">
+        {% for pin in pin_ideas %}
+        <div class="pin-card group bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md hover:border-gray-200 transition-all duration-300"
+            data-pin-id="{{ pin.id }}">
+            <div class="flex items-start gap-4">
+                <!-- Checkbox -->
+                <div class="pt-1">
+                    <input type="checkbox" name="selected_pins" value="{{ pin.id }}" onchange="updateSelection()"
+                        class="pin-checkbox w-5 h-5 rounded-lg border-gray-300 text-pinterest-red focus:ring-pinterest-red/30 cursor-pointer">
+                </div>
+
+                <!-- Image Preview (if generated) -->
+                {% if pin.image_url %}
+                <div class="w-20 h-28 shrink-0 rounded-xl overflow-hidden bg-gray-50 shadow-sm">
+                    <img src="{{ pin.image_url }}" alt="{{ pin.title }}" class="w-full h-full object-cover">
+                </div>
+                {% else %}
+                <div
+                    class="w-20 h-28 shrink-0 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                    <i class="bi bi-image text-xl text-gray-300"></i>
+                </div>
+                {% endif %}
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-3">
+                        <h3 class="text-sm font-bold text-gray-900 leading-snug line-clamp-2">{{ pin.title }}</h3>
+                        <div class="flex items-center gap-2 shrink-0">
+                            {% if pin.is_posted %}
+                            <span
+                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full">
+                                <i class="bi bi-check-circle-fill text-[10px]"></i> Posted
+                            </span>
+                            {% elif pin.status == 'scheduled' %}
+                            <span
+                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-600 text-xs font-semibold rounded-full">
+                                <i class="bi bi-calendar-check text-[10px]"></i> Scheduled
+                            </span>
+                            {% elif pin.has_image %}
+                            <span
+                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
+                                <i class="bi bi-image-fill text-[10px]"></i> Image Ready
+                            </span>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-400 text-xs font-semibold rounded-full">
+                                <i class="bi bi-clock text-[10px]"></i> No Image
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if pin.description %}
+                    <p class="text-xs text-gray-400 mt-1.5 line-clamp-3 leading-relaxed">{{ pin.description }}</p>
+                    {% endif %}
+                    <div class="flex items-center gap-3 mt-2.5 text-xs text-gray-300">
+                        <span><i class="bi bi-tag mr-1"></i>{{ pin.expanded_keyword.keyword|truncatewords:3 }}</span>
+                        {% if pin.posted_at %}
+                        <span><i class="bi bi-calendar-check mr-1"></i>Posted {{ pin.posted_at|date:"M d" }}</span>
+                        {% elif pin.scheduled_at %}
+                        <span class="text-purple-400"><i class="bi bi-clock-history mr-1"></i>Scheduled: {{
+                            pin.scheduled_at|date:"M d, H:i" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+        <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+            <i class="bi bi-pin-angle text-3xl text-gray-300"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-700 mb-2">No Pin Ideas Yet</h3>
+        <p class="text-sm text-gray-400 mb-6 max-w-sm mx-auto">Generate content first to create pin ideas for this
+            project.</p>
+        <a href="{% url 'wizard:content_gen' project.id %}"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-colors shadow-sm">
+            <i class="bi bi-pencil-square"></i>
+            Generate Content
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full mx-4 text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-pinterest-red animate-spin">
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 mb-1" id="loading-title">Generating...</h3>
+        <p class="text-sm text-gray-400" id="loading-message">This may take a moment</p>
+    </div>
+</div>
+
+<!-- Scheduling Modal -->
+<div id="schedule-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Schedule Post</h3>
+        <p class="text-sm text-gray-500 mb-4">Choose a date and time to publish these pins automatically.</p>
+
+        <div class="mb-5">
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Date & Time</label>
+            <input type="datetime-local" id="schedule-time"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-pinterest-red focus:ring-pinterest-red/20 text-sm">
+            <p class="text-xs text-gray-400 mt-2">
+                <i class="bi bi-info-circle mr-1"></i> Make sure the background publisher is running.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button onclick="closeScheduleModal()"
+                class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors">
+                Cancel
+            </button>
+            <button onclick="confirmSchedule()"
+                class="flex-1 px-4 py-2.5 bg-pinterest-red text-white text-sm font-semibold rounded-xl hover:bg-[#ad081b] transition-colors">
+                Confirm Schedule
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getSelectedPinIds() {
+        const checked = document.querySelectorAll('.pin-checkbox:checked');
+        return Array.from(checked).map(cb => cb.value);
+    }
+
+    function updateSelection() {
+        const ids = getSelectedPinIds();
+        const count = ids.length;
+        const countEl = document.getElementById('selected-count');
+        const genBtn = document.getElementById('generate-images-btn');
+        const postBtn = document.getElementById('post-pinterest-btn');
+        const scheduleBtn = document.getElementById('schedule-btn');
+        const infoEl = document.getElementById('selection-info');
+
+        countEl.textContent = count;
+        countEl.classList.toggle('hidden', count === 0);
+
+        genBtn.disabled = count === 0;
+        postBtn.disabled = count === 0;
+        if (scheduleBtn) scheduleBtn.disabled = count === 0;
+
+        infoEl.textContent = count > 0
+            ? `${count} pin${count > 1 ? 's' : ''} selected`
+            : '{{ pin_ideas|length }} pin ideas available';
+    }
+
+    function toggleSelectAll(checkbox) {
+        document.querySelectorAll('.pin-checkbox').forEach(cb => {
+            cb.checked = checkbox.checked;
+        });
+        updateSelection();
+    }
+
+    function showLoading(title, message) {
+        const overlay = document.getElementById('loading-overlay');
+        document.getElementById('loading-title').textContent = title;
+        document.getElementById('loading-message').textContent = message;
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+    }
+
+    function hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.classList.remove('flex');
+        overlay.classList.add('hidden');
+    }
+
+    // --- Scheduling Modal Logic ---
+    function openScheduleModal() {
+        const modal = document.getElementById('schedule-modal');
+        // Set min datetime to now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('schedule-time').min = now.toISOString().slice(0, 16);
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeScheduleModal() {
+        const modal = document.getElementById('schedule-modal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    function confirmSchedule() {
+        const timeInput = document.getElementById('schedule-time');
+        if (!timeInput.value) {
+            alert('Please select a date and time.');
+            return;
+        }
+
+        closeScheduleModal();
+        postSelectedToPinterest(timeInput.value);
+    }
+
+    function generateSelectedImages() {
+        const ids = getSelectedPinIds();
+        if (ids.length === 0) return;
+
+        showLoading('Generating Pin Images', `Creating images for ${ids.length} pin${ids.length > 1 ? 's' : ''}...`);
+
+        fetch("{% url 'wizard:generate_pin_images' project.id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ pin_ids: ids })
+        })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Network error: ' + err.message);
+            });
+    }
+
+    function postSelectedToPinterest(scheduledTime = null) {
+        const ids = getSelectedPinIds();
+        if (ids.length === 0) return;
+
+        // Check if all selected pins have images
+        const pinsWithoutImages = [];
+        ids.forEach(id => {
+            const card = document.querySelector(`[data-pin-id="${id}"]`);
+            if (card && !card.querySelector('img')) {
+                pinsWithoutImages.push(id);
+            }
+        });
+
+        if (pinsWithoutImages.length > 0) {
+            alert('Some selected pins do not have images. Please generate images first.');
+            return;
+        }
+
+        const actionText = scheduledTime ? 'Scheduling Post' : 'Posting to Pinterest';
+        const waitingText = scheduledTime ? 'Scheduling...' : 'Posting...';
+
+        showLoading(actionText, `${waitingText}`);
+
+        const bodyData = { pin_ids: ids };
+        if (scheduledTime) {
+            bodyData.scheduled_time = scheduledTime;
+        }
+
+        fetch("{% url 'wizard:post_pins_pinterest' project.id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(bodyData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    if (data.scheduled) {
+                        alert(`Successfully scheduled ${data.count} pins.`);
+                    }
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Network error: ' + err.message);
+            });
+    }
+</script>
+{% endblock %}

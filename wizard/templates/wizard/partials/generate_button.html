@@ -1,0 +1,13 @@
+<div id="generate-btn-container" hx-swap-oob="true">
+    <button
+        class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-full transition-colors flex items-center gap-2"
+        hx-include="[name='article_count'], [name='pin_count']"
+        hx-get="{% url 'wizard:generate_content_htmx' project.id %}" hx-target="#content-container" hx-swap="innerHTML"
+        hx-indicator="#loading-spinner">
+        {% if generated_count > 0 %}
+        <i class="bi bi-stars"></i> Regenerate
+        {% else %}
+        <i class="bi bi-stars"></i> Generate
+        {% endif %}
+    </button>
+</div>
