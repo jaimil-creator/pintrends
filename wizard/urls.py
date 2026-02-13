@@ -12,6 +12,7 @@ urlpatterns = [
     
     # Step 0: Create Project
     path('new/', views.ProjectCreateView.as_view(), name='project_create'),
+    path('project/<int:project_id>/delete/', views.delete_project, name='delete_project'),
     
     # Step 1: Fetch Trends
     path('<int:project_id>/trends/', views.TrendFetchView.as_view(), name='trend_fetch'),

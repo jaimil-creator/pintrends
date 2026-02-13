@@ -205,6 +205,14 @@ class ProjectListView(TemplateView):
         context['projects_with_stats'] = projects_with_stats
         return context
 
+@require_POST
+def delete_project(request, project_id):
+    """Deletes a project."""
+    project = get_object_or_404(Project, pk=project_id)
+    project.delete()
+    messages.success(request, f"Project '{project.name}' deleted successfully.")
+    return redirect('wizard:project_list')
+
 # ============= STEP 0: Create Project =============
 class ProjectCreateView(CreateView):
     model = Project
@@ -462,7 +470,8 @@ def expand_keywords_htmx(request, project_id):
                 keyword=item.get('keyword', ''),
                 base_keyword=item.get('base', base_keywords[0] if base_keywords else ''),
                 intent=item.get('intent', 'ideas'),
-                score=item.get('score', 75)
+                score=item.get('score', 75),
+                selected=False  # User requested deselect by default
             )
         
         all_expanded = ExpandedKeyword.objects.filter(project=project).order_by('base_keyword')
