@@ -1,0 +1,137 @@
+<div class="keyword-section animate-fade-in-up" id="keyword-card-{{ kw.id }}">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
+        <div class="bg-gray-100 rounded-full w-12 h-12 flex items-center justify-center">
+            <span class="text-xl font-bold">{{ forloop.counter }}</span>
+        </div>
+        <div>
+            <h3 class="text-2xl font-bold text-gray-900">{{ kw.keyword }}</h3>
+            <p class="text-gray-500">Based on: {{ kw.base_keyword }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Article Ideas Column -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative group/col">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                        <i class="bi bi-file-text-fill text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-lg">Article Titles</h4>
+                    </div>
+                </div>
+                <!-- Regenerate Button -->
+                <button
+                    class="opacity-0 group-hover/col:opacity-100 transition-opacity text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 px-3 rounded-full flex items-center gap-1"
+                    hx-get="{% url 'wizard:generate_content_htmx' project.id %}?type=articles&keyword_id={{ kw.id }}&article_count={{ article_count|default:5 }}"
+                    hx-target="#keyword-card-{{ kw.id }}" hx-swap="outerHTML"
+                    hx-indicator="#loading-spinner-{{ kw.id }}">
+                    <i class="bi bi-arrow-repeat"></i> Regenerate
+                </button>
+            </div>
+
+            <div class="space-y-4 relative">
+                <div id="loading-spinner-{{ kw.id }}"
+                    class="htmx-indicator absolute inset-0 bg-white/80 z-10 flex items-center justify-center">
+                    <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+
+                {% if kw.article_ideas.all %}
+                {% for article in kw.article_ideas.all %}
+                <div
+                    class="p-4 rounded-2xl bg-gray-50 hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-sm transition-all group">
+                    <h5 class="font-bold text-gray-800 leading-snug mb-1">{{ article.title }}</h5>
+                    {% if article.hook %}
+                    <p class="text-xs text-gray-500 italic"><span class="font-semibold text-blue-500">Hook:</span>
+                        {{ article.hook }}</p>
+                    {% endif %}
+                    <div class="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
+                        <button class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            hx-get="{% url 'wizard:edit_article' article.id %}" hx-target="#edit-modal-content"
+                            hx-swap="innerHTML"
+                            onclick="document.getElementById('edit-modal').classList.remove('hidden')">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="text-xs font-bold text-gray-400 hover:text-gray-900 flex items-center gap-1"
+                            onclick="navigator.clipboard.writeText('{{ article.title|escapejs }}'); this.innerHTML = '<i class=\'bi bi-check\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy', 2000);">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-8 text-gray-400">
+                    <p>No articles generated.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Pin Ideas Column -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative group/col">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-pinterest-red/10 flex items-center justify-center text-pinterest-red">
+                        <i class="bi bi-pin-angle-fill text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-lg">Pin Ideas</h4>
+                    </div>
+                </div>
+                <!-- Regenerate Button -->
+                <button
+                    class="opacity-0 group-hover/col:opacity-100 transition-opacity text-xs font-bold text-pinterest-red bg-red-50 hover:bg-red-100 py-2 px-3 rounded-full flex items-center gap-1"
+                    hx-get="{% url 'wizard:generate_content_htmx' project.id %}?type=pins&keyword_id={{ kw.id }}&pin_count={{ pin_count|default:5 }}"
+                    hx-target="#keyword-card-{{ kw.id }}" hx-swap="outerHTML"
+                    hx-indicator="#loading-spinner-pins-{{ kw.id }}">
+                    <i class="bi bi-arrow-repeat"></i> Regenerate
+                </button>
+            </div>
+
+            <div class="space-y-6 relative">
+                <div id="loading-spinner-pins-{{ kw.id }}"
+                    class="htmx-indicator absolute inset-0 bg-white/80 z-10 flex items-center justify-center">
+                    <div class="animate-spin w-8 h-8 border-2 border-pinterest-red border-t-transparent rounded-full">
+                    </div>
+                </div>
+
+                {% if kw.pin_ideas.all %}
+                {% for pin in kw.pin_ideas.all %}
+                <div
+                    class="flex gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-sm transition-all group">
+                    <div
+                        class="w-24 h-32 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-400">
+                        <i class="bi bi-image text-2xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h5 class="font-bold text-gray-800 leading-snug mb-2">{{ pin.title }}</h5>
+                        <p class="text-sm text-gray-500 line-clamp-3 mb-2">{{ pin.description }}</p>
+
+                        <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                class="text-xs font-bold text-pinterest-red hover:text-[#ad081b] flex items-center gap-1"
+                                hx-get="{% url 'wizard:edit_pin' pin.id %}" hx-target="#edit-modal-content"
+                                hx-swap="innerHTML"
+                                onclick="document.getElementById('edit-modal').classList.remove('hidden')">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <button class="text-xs font-bold text-gray-400 hover:text-gray-900 flex items-center gap-1"
+                                onclick="navigator.clipboard.writeText('{{ pin.title|escapejs }}\n\n{{ pin.description|escapejs }}'); this.innerHTML = '<i class=\'bi bi-check\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy Content', 2000);">
+                                <i class="bi bi-clipboard"></i> Copy Content
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-8 text-gray-400">
+                    <p>No pins generated.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

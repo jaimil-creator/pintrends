@@ -533,17 +533,25 @@ def generate_content_htmx(request, project_id):
         article_count = 5
         pin_count = 5
 
-    # Clear existing content to allow fresh regeneration
-    ArticleIdea.objects.filter(project=project).delete()
-    PinIdea.objects.filter(project=project).delete()
+    # Type of generation: 'articles', 'pins', or 'all'
+    gen_type = request.GET.get('type', 'all')
+    
+    # Specific keyword ID (optional)
+    keyword_id = request.GET.get('keyword_id')
     
     generator = ContentGeneratorService()
 
     try:
-        # Fetch all expanded keywords
-        expanded_keywords = ExpandedKeyword.objects.filter(project=project, selected=True)
+        # Determine scope: Single keyword or All selected keywords
+        if keyword_id:
+            expanded_keywords = ExpandedKeyword.objects.filter(pk=keyword_id, project=project)
+        else:
+            expanded_keywords = ExpandedKeyword.objects.filter(project=project, selected=True)
         
         if not expanded_keywords.exists():
+             # If targeting a specific keyword that doesn't exist, just return nothing or error
+            if keyword_id:
+                return HttpResponse("Keyword not found", status=404)
             return render(request, 'wizard/partials/error.html', {'error': 'No expanded keywords found. Go back and select some phrases.'})
         
         # Pre-fetch suggestions
@@ -557,48 +565,82 @@ def generate_content_htmx(request, project_id):
         generated_count = 0
         
         for kw_obj in expanded_keywords:
-            # 1. Generate Articles
-            articles = generator.generate_article_titles(
-                keyword=kw_obj.keyword,
-                count=article_count
-            )
             
-            # Save Articles
-            saved_articles = []
-            for a in articles:
-                saved_articles.append(ArticleIdea(
-                    project=project,
-                    expanded_keyword=kw_obj,
-                    title=a.get('title', ''),
-                    hook=a.get('hook', '')
-                ))
-            ArticleIdea.objects.bulk_create(saved_articles)
+            # 1. Generate Articles if requested
+            if gen_type in ['all', 'articles']:
+                # Clear existing articles for this keyword
+                ArticleIdea.objects.filter(expanded_keyword=kw_obj).delete()
+                
+                articles = generator.generate_article_titles(
+                    keyword=kw_obj.keyword,
+                    count=article_count
+                )
+                
+                # Save Articles
+                saved_articles = []
+                for a in articles:
+                    saved_articles.append(ArticleIdea(
+                        project=project,
+                        expanded_keyword=kw_obj,
+                        title=a.get('title', ''),
+                        hook=a.get('hook', '')
+                    ))
+                ArticleIdea.objects.bulk_create(saved_articles)
 
-            # 2. Generate Pins (Use first article title as context if avail, else keyword)
-            context_title = articles[0]['title'] if articles else kw_obj.keyword
-            context_suggestions = suggestions_map.get(kw_obj.base_keyword, [])
-            
-            pins = generator.generate_pin_ideas(
-                keyword=kw_obj.keyword,
-                article_title=context_title,
-                suggestions=context_suggestions,
-                count=pin_count
-            )
-            
-            # Save Pins
-            saved_pins = []
-            for p in pins:
-                saved_pins.append(PinIdea(
-                    project=project,
-                    expanded_keyword=kw_obj,
-                    title=p.get('title', ''),
-                    description=p.get('description', '')
-                ))
-            PinIdea.objects.bulk_create(saved_pins)
+            # 2. Generate Pins if requested
+            if gen_type in ['all', 'pins']:
+                # Clear existing pins for this keyword
+                PinIdea.objects.filter(expanded_keyword=kw_obj).delete()
+
+                # Context for pins:
+                # Use existing articles if we didn't just generate them
+                # OR use the ones we just generated
+                context_title = kw_obj.keyword # Default fallback
+                
+                # If we have articles (either just generated or existing), use the first one
+                first_article = ArticleIdea.objects.filter(expanded_keyword=kw_obj).first()
+                if first_article:
+                    context_title = first_article.title
+                
+                context_suggestions = suggestions_map.get(kw_obj.base_keyword, [])
+                
+                pins = generator.generate_pin_ideas(
+                    keyword=kw_obj.keyword,
+                    article_title=context_title,
+                    suggestions=context_suggestions,
+                    count=pin_count
+                )
+                
+                # Save Pins
+                saved_pins = []
+                for p in pins:
+                    saved_pins.append(PinIdea(
+                        project=project,
+                        expanded_keyword=kw_obj,
+                        title=p.get('title', ''),
+                        description=p.get('description', '')
+                    ))
+                PinIdea.objects.bulk_create(saved_pins)
             
             generated_count += 1
         
-        # Fetch results with prefetch for display
+        # Return Response
+        
+        # Case A: Single Keyword Update (return just the card)
+        if keyword_id:
+            kw = expanded_keywords.first() # We filtered by ID, so should be one
+             # Refresh from DB to get new relations
+            kw_refreshed = ExpandedKeyword.objects.prefetch_related('article_ideas', 'pin_ideas').get(pk=kw.id)
+            
+            return render(request, 'wizard/partials/keyword_content_card.html', {
+                'kw': kw_refreshed,
+                'project': project,
+                 # Pass counts back to keep state if needed, though they come from context usually
+                'article_count': article_count,
+                'pin_count': pin_count 
+            })
+
+        # Case B: Global Update (return full list + button)
         keywords_with_content = ExpandedKeyword.objects.filter(
             project=project, selected=True
         ).prefetch_related('article_ideas', 'pin_ideas')
@@ -607,16 +649,18 @@ def generate_content_htmx(request, project_id):
         content_html = render_to_string('wizard/partials/content_list.html', {
             'project': project,
             'keywords_with_content': keywords_with_content,
-            'total_generated': generated_count,
+            'total_generated': generated_count, # This might need better tracking if partial updates happen
             'article_count': article_count,
             'pin_count': pin_count
         }, request=request)
         
         # Render button (OOB swap)
-        # generated_count here tracks keywords processed. If > 0, we have content.
+        # We only really care about count > 0 to show "Regenerate" vs "Generate"
+        total_content_count = ArticleIdea.objects.filter(project=project).count()
+        
         button_html = render_to_string('wizard/partials/generate_button.html', {
             'project': project,
-            'generated_count': generated_count
+            'generated_count': total_content_count
         }, request=request)
         
         return HttpResponse(content_html + button_html)
