@@ -3,27 +3,22 @@
     <h5 class="text-xl font-bold">Found {{ suggestions|length }} suggestions</h5>
 </div>
 
-<div class="masonry-grid w-full">
-    <!-- Grid Sizer -->
-    <div class="grid-sizer w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%]"></div>
-    <div class="gutter-sizer w-[2%]"></div>
+<div class="w-full space-y-8">
+    {% regroup suggestions by base_keyword as grouped_suggestions %}
 
-    {% for s in suggestions %}
-    <div class="grid-item w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%] mb-4 px-1">
-        <div
-            class="group relative bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col justify-between p-6 border border-transparent hover:border-gray-200">
-            <div>
-                <h5 class="font-bold text-gray-900 mb-2 leading-tight">{{ s.suggestion }}</h5>
-                <span
-                    class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                    <i class="bi bi-arrow-return-right"></i> {{ s.base_keyword }}
-                </span>
-            </div>
-            <!-- Decorative icon -->
+    {% for group in grouped_suggestions %}
+    <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+        <h6 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+            Based on: <span class="text-gray-900">{{ group.grouper }}</span>
+        </h6>
+
+        <div class="flex flex-wrap gap-3">
+            {% for s in group.list %}
             <div
-                class="text-right mt-4 opacity-10 group-hover:opacity-100 group-hover:text-pinterest-red transition-all duration-300">
-                <i class="bi bi-lightbulb-fill text-xl"></i>
+                class="inline-flex items-center px-4 py-2 rounded-full border border-gray-200 bg-gray-50 text-gray-800 text-sm font-medium hover:bg-gray-100 transition-colors cursor-default">
+                {{ s.suggestion }}
             </div>
+            {% endfor %}
         </div>
     </div>
     {% endfor %}

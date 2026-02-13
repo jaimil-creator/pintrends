@@ -99,10 +99,10 @@ class PinterestScraperService:
             print(f"Selector 0 (.KvKvqR > div > div) found: {count}")
 
             if count == 0:
-                # Selector 1: Common class for search bubbles
-                results = browser.page.locator('[data-test-id="guided-search-guide"]') 
+                # Selector 1: Common class for search bubbles (Target chilren buttons)
+                results = browser.page.locator('[data-test-id="guided-search-guide"] div[role="button"]') 
                 count = await results.count()
-                print(f"Selector 1 (data-test-id) found: {count}")
+                print(f"Selector 1 (guided-search-guide buttons) found: {count}")
             
             if count == 0:
                  # Selector 2: Fallback to common class
@@ -117,6 +117,12 @@ class PinterestScraperService:
                  results = browser.page.locator('div[data-test-id="scrollable-container"] div[role="button"]')
                  count = await results.count()
                  print(f"Selector 3 (scrollable container buttons) found: {count}")
+            
+            # Selector 4: Fallback for generic pill buttons (if nothing else matched)
+            if count == 0:
+                results = browser.page.locator('a[href*="/search/pins/?q="]')
+                count = await results.count()
+                print(f"Selector 4 (search links) found: {count}")
 
             suggestions = []
             for i in range(count):

@@ -33,6 +33,112 @@ PINTEREST_PASSWORD=your_password</pre>
     </div>
     {% endif %}
 
+    <!-- Posting Settings -->
+    <div class="mb-8 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+        <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <i class="bi bi-sliders"></i> Posting Settings
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Board Selection -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pinterest Board Name</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bi bi-collection text-gray-400"></i>
+                    </div>
+                    <input type="text" id="board-name-input" placeholder="e.g. Summer Outfits"
+                        class="pl-10 w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-pinterest-red focus:ring-pinterest-red/20 text-sm placeholder-gray-400 transition-colors">
+                </div>
+                <p class="text-xs text-gray-400 mt-1.5">Leave empty to use default board from settings.</p>
+            </div>
+
+            <!-- Destination Link -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Destination Link</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bi bi-link-45deg text-gray-400"></i>
+                    </div>
+                    <input type="url" id="destination-link-input" placeholder="https://..."
+                        value="{{ blog_url|default:'' }}"
+                        class="pl-10 w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-pinterest-red focus:ring-pinterest-red/20 text-sm placeholder-gray-400 transition-colors">
+                </div>
+                <p class="text-xs text-gray-400 mt-1.5">This link will be added to all posted pins.</p>
+            </div>
+
+            <!-- Schedule Date -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Schedule Date (Optional)</label>
+                <div class="relative">
+                    <input type="date" id="schedule-date-input"
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-pinterest-red focus:ring-pinterest-red/20 text-sm placeholder-gray-400 transition-colors">
+                </div>
+            </div>
+
+            <!-- Schedule Time -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Schedule Time (Optional)</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bi bi-clock text-gray-400"></i>
+                    </div>
+                    <select id="schedule-time-input"
+                        class="pl-10 w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-pinterest-red focus:ring-pinterest-red/20 text-sm placeholder-gray-400 transition-colors appearance-none bg-white">
+                        <option value="">Post Immediately</option>
+                        <option value="12:00 AM">12:00 AM</option>
+                        <option value="12:30 AM">12:30 AM</option>
+                        <option value="01:00 AM">01:00 AM</option>
+                        <option value="01:30 AM">01:30 AM</option>
+                        <option value="02:00 AM">02:00 AM</option>
+                        <option value="02:30 AM">02:30 AM</option>
+                        <option value="03:00 AM">03:00 AM</option>
+                        <option value="03:30 AM">03:30 AM</option>
+                        <option value="04:00 AM">04:00 AM</option>
+                        <option value="04:30 AM">04:30 AM</option>
+                        <option value="05:00 AM">05:00 AM</option>
+                        <option value="05:30 AM">05:30 AM</option>
+                        <option value="06:00 AM">06:00 AM</option>
+                        <option value="06:30 AM">06:30 AM</option>
+                        <option value="07:00 AM">07:00 AM</option>
+                        <option value="07:30 AM">07:30 AM</option>
+                        <option value="08:00 AM">08:00 AM</option>
+                        <option value="08:30 AM">08:30 AM</option>
+                        <option value="09:00 AM">09:00 AM</option>
+                        <option value="09:30 AM">09:30 AM</option>
+                        <option value="10:00 AM">10:00 AM</option>
+                        <option value="10:30 AM">10:30 AM</option>
+                        <option value="11:00 AM">11:00 AM</option>
+                        <option value="11:30 AM">11:30 AM</option>
+                        <option value="12:00 PM">12:00 PM</option>
+                        <option value="12:30 PM">12:30 PM</option>
+                        <option value="01:00 PM">01:00 PM</option>
+                        <option value="01:30 PM">01:30 PM</option>
+                        <option value="02:00 PM">02:00 PM</option>
+                        <option value="02:30 PM">02:30 PM</option>
+                        <option value="03:00 PM">03:00 PM</option>
+                        <option value="03:30 PM">03:30 PM</option>
+                        <option value="04:00 PM">04:00 PM</option>
+                        <option value="04:30 PM">04:30 PM</option>
+                        <option value="05:00 PM">05:00 PM</option>
+                        <option value="05:30 PM">05:30 PM</option>
+                        <option value="06:00 PM">06:00 PM</option>
+                        <option value="06:30 PM">06:30 PM</option>
+                        <option value="07:00 PM">07:00 PM</option>
+                        <option value="07:30 PM">07:30 PM</option>
+                        <option value="08:00 PM">08:00 PM</option>
+                        <option value="08:30 PM">08:30 PM</option>
+                        <option value="09:00 PM">09:00 PM</option>
+                        <option value="09:30 PM">09:30 PM</option>
+                        <option value="10:00 PM">10:00 PM</option>
+                        <option value="10:30 PM">10:30 PM</option>
+                        <option value="11:00 PM">11:00 PM</option>
+                        <option value="11:30 PM">11:30 PM</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
         <div>
@@ -52,13 +158,7 @@ PINTEREST_PASSWORD=your_password</pre>
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled>
                 <i class="bi bi-send"></i>
-                Post Now
-            </button>
-            <button id="schedule-btn" onclick="openScheduleModal()"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-full hover:bg-gray-50 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled>
-                <i class="bi bi-calendar-event"></i>
-                Schedule
+                Post to Pinterest
             </button>
         </div>
     </div>
@@ -75,17 +175,24 @@ PINTEREST_PASSWORD=your_password</pre>
     </div>
 
     <!-- Pin Ideas List -->
+    <!-- Pin Ideas List -->
     <div id="pin-ideas-container" class="space-y-3">
         {% for pin in pin_ideas %}
-        <div class="pin-card group bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md hover:border-gray-200 transition-all duration-300"
-            data-pin-id="{{ pin.id }}">
-            <div class="flex items-start gap-4">
-                <!-- Checkbox -->
-                <div class="pt-1">
-                    <input type="checkbox" name="selected_pins" value="{{ pin.id }}" onchange="updateSelection()"
-                        class="pin-checkbox w-5 h-5 rounded-lg border-gray-300 text-pinterest-red focus:ring-pinterest-red/30 cursor-pointer">
-                </div>
+        <div class="pin-card group bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md hover:border-gray-200 transition-all duration-300 relative cursor-pointer"
+            onclick="togglePinSelection(this, '{{ pin.id }}')" data-pin-id="{{ pin.id }}">
 
+            <!-- Selection Toggle (Top Right) -->
+            <button type="button"
+                class="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 bg-gray-100 text-gray-400 hover:bg-gray-200 selection-toggle"
+                data-selected="false">
+                <i class="bi bi-plus-lg text-lg icon-plus"></i>
+                <i class="bi bi-check-lg text-lg icon-check hidden"></i>
+            </button>
+
+            <!-- Hidden Checkbox for Form Submission -->
+            <input type="checkbox" name="selected_pins" value="{{ pin.id }}" class="hidden pin-checkbox">
+
+            <div class="flex items-start gap-4">
                 <!-- Image Preview (if generated) -->
                 {% if pin.image_url %}
                 <div class="w-20 h-28 shrink-0 rounded-xl overflow-hidden bg-gray-50 shadow-sm">
@@ -99,35 +206,37 @@ PINTEREST_PASSWORD=your_password</pre>
                 {% endif %}
 
                 <!-- Content -->
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0 pr-10"> <!-- Added padding right to avoid overlap with toggle -->
+                    <div class="flex items-start justify-between gap-3 mb-1">
                         <h3 class="text-sm font-bold text-gray-900 leading-snug line-clamp-2">{{ pin.title }}</h3>
-                        <div class="flex items-center gap-2 shrink-0">
-                            {% if pin.is_posted %}
-                            <span
-                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full">
-                                <i class="bi bi-check-circle-fill text-[10px]"></i> Posted
-                            </span>
-                            {% elif pin.status == 'scheduled' %}
-                            <span
-                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-600 text-xs font-semibold rounded-full">
-                                <i class="bi bi-calendar-check text-[10px]"></i> Scheduled
-                            </span>
-                            {% elif pin.has_image %}
-                            <span
-                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
-                                <i class="bi bi-image-fill text-[10px]"></i> Image Ready
-                            </span>
-                            {% else %}
-                            <span
-                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-400 text-xs font-semibold rounded-full">
-                                <i class="bi bi-clock text-[10px]"></i> No Image
-                            </span>
-                            {% endif %}
-                        </div>
                     </div>
+
+                    <div class="flex items-center gap-2 shrink-0 mb-2">
+                        {% if pin.is_posted %}
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full">
+                            <i class="bi bi-check-circle-fill text-[10px]"></i> Posted
+                        </span>
+                        {% elif pin.status == 'scheduled' %}
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-600 text-xs font-semibold rounded-full">
+                            <i class="bi bi-calendar-check text-[10px]"></i> Scheduled
+                        </span>
+                        {% elif pin.has_image %}
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
+                            <i class="bi bi-image-fill text-[10px]"></i> Image Ready
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-400 text-xs font-semibold rounded-full">
+                            <i class="bi bi-clock text-[10px]"></i> No Image
+                        </span>
+                        {% endif %}
+                    </div>
+
                     {% if pin.description %}
-                    <p class="text-xs text-gray-400 mt-1.5 line-clamp-3 leading-relaxed">{{ pin.description }}</p>
+                    <p class="text-xs text-gray-400 mt-1.5 line-clamp-2 leading-relaxed">{{ pin.description }}</p>
                     {% endif %}
                     <div class="flex items-center gap-3 mt-2.5 text-xs text-gray-300">
                         <span><i class="bi bi-tag mr-1"></i>{{ pin.expanded_keyword.keyword|truncatewords:3 }}</span>
@@ -138,28 +247,26 @@ PINTEREST_PASSWORD=your_password</pre>
                             pin.scheduled_at|date:"M d, H:i" }}</span>
                         {% endif %}
                     </div>
+
+                    <!-- Tagged Topics Input -->
+                    <div class="mt-3 pt-3 border-t border-gray-50">
+                        <label
+                            class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Tagged
+                            Topics</label>
+                        <input type="text"
+                            class="tags-input w-full bg-gray-50 border-gray-100 rounded-lg text-xs px-3 py-2 text-gray-700 placeholder-gray-400 focus:bg-white focus:border-pinterest-red focus:ring-pinterest-red/20 transition-all"
+                            placeholder="e.g. fashion, summer outfits (comma separated)"
+                            onclick="event.stopPropagation()">
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    {% else %}
-    <!-- Empty State -->
-    <div class="text-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
-        <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-            <i class="bi bi-pin-angle text-3xl text-gray-300"></i>
-        </div>
-        <h3 class="text-lg font-bold text-gray-700 mb-2">No Pin Ideas Yet</h3>
-        <p class="text-sm text-gray-400 mb-6 max-w-sm mx-auto">Generate content first to create pin ideas for this
-            project.</p>
-        <a href="{% url 'wizard:content_gen' project.id %}"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-colors shadow-sm">
-            <i class="bi bi-pencil-square"></i>
-            Generate Content
-        </a>
-    </div>
-    {% endif %}
+    <!-- Pagination -->
+    <!-- ... (Pagination code if exists) ... -->
+
 </div>
 
 <!-- Loading Overlay -->
@@ -168,39 +275,91 @@ PINTEREST_PASSWORD=your_password</pre>
         <div class="w-14 h-14 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-pinterest-red animate-spin">
         </div>
         <h3 class="text-lg font-bold text-gray-900 mb-1" id="loading-title">Generating...</h3>
-        <p class="text-sm text-gray-400" id="loading-message">This may take a moment</p>
+        <p class="text-sm text-gray-500" id="loading-message">Please wait...</p>
     </div>
 </div>
 
-<!-- Scheduling Modal -->
-<div id="schedule-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center">
-    <div class="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full mx-4">
-        <h3 class="text-lg font-bold text-gray-900 mb-2">Schedule Post</h3>
-        <p class="text-sm text-gray-500 mb-4">Choose a date and time to publish these pins automatically.</p>
+<!-- Toast Notification -->
+<div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+    <!-- Toasts will be injected here -->
+</div>
 
-        <div class="mb-5">
-            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Date & Time</label>
-            <input type="datetime-local" id="schedule-time"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-pinterest-red focus:ring-pinterest-red/20 text-sm">
-            <p class="text-xs text-gray-400 mt-2">
-                <i class="bi bi-info-circle mr-1"></i> Make sure the background publisher is running.
-            </p>
-        </div>
 
-        <div class="flex items-center gap-3">
-            <button onclick="closeScheduleModal()"
-                class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors">
-                Cancel
-            </button>
-            <button onclick="confirmSchedule()"
-                class="flex-1 px-4 py-2.5 bg-pinterest-red text-white text-sm font-semibold rounded-xl hover:bg-[#ad081b] transition-colors">
-                Confirm Schedule
-            </button>
-        </div>
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+    <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+        <i class="bi bi-pin-angle text-3xl text-gray-300"></i>
     </div>
+    <h3 class="text-lg font-bold text-gray-700 mb-2">No Pin Ideas Yet</h3>
+    <p class="text-sm text-gray-400 mb-6 max-w-sm mx-auto">Generate content first to create pin ideas for this
+        project.</p>
+    <a href="{% url 'wizard:content_gen' project.id %}"
+        class="inline-flex items-center gap-2 px-6 py-3 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-colors shadow-sm">
+        <i class="bi bi-pencil-square"></i>
+        Generate Content
+    </a>
+</div>
+{% endif %}
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full mx-4 text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-pinterest-red animate-spin">
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 mb-1" id="loading-title">Generating...</h3>
+        <p class="text-sm text-gray-500" id="loading-message">Please wait...</p>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+    <!-- Toasts will be injected here -->
 </div>
 
 <script>
+    function togglePinSelection(card, pinId) {
+        const checkbox = card.querySelector('.pin-checkbox');
+        const toggleBtn = card.querySelector('.selection-toggle');
+        const iconPlus = toggleBtn.querySelector('.icon-plus');
+        const iconCheck = toggleBtn.querySelector('.icon-check');
+
+        // Toggle state
+        const isSelected = !checkbox.checked;
+        checkbox.checked = isSelected;
+
+        // Update UI
+        if (isSelected) {
+            // Card Style
+            card.classList.remove('border-gray-100');
+            card.classList.add('border-green-500', 'bg-green-50/10'); // Slight green tint if desired
+
+            // Button Style
+            toggleBtn.classList.remove('bg-gray-100', 'text-gray-400', 'hover:bg-gray-200');
+            toggleBtn.classList.add('bg-green-500', 'text-white', 'shadow-md', 'hover:bg-green-600');
+
+            // Icon
+            iconPlus.classList.add('hidden');
+            iconCheck.classList.remove('hidden');
+        } else {
+            // Card Style
+            card.classList.add('border-gray-100');
+            card.classList.remove('border-green-500', 'bg-green-50/10');
+
+            // Button Style
+            toggleBtn.classList.add('bg-gray-100', 'text-gray-400', 'hover:bg-gray-200');
+            toggleBtn.classList.remove('bg-green-500', 'text-white', 'shadow-md', 'hover:bg-green-600');
+
+            // Icon
+            iconPlus.classList.remove('hidden');
+            iconCheck.classList.add('hidden');
+        }
+
+        updateSelection();
+    }
+
     function getSelectedPinIds() {
         const checked = document.querySelectorAll('.pin-checkbox:checked');
         return Array.from(checked).map(cb => cb.value);
@@ -248,34 +407,37 @@ PINTEREST_PASSWORD=your_password</pre>
         overlay.classList.add('hidden');
     }
 
-    // --- Scheduling Modal Logic ---
-    function openScheduleModal() {
-        const modal = document.getElementById('schedule-modal');
-        // Set min datetime to now
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('schedule-time').min = now.toISOString().slice(0, 16);
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
 
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        // Colors based on type
+        const bgClass = type === 'success' ? 'bg-gray-900' : 'bg-red-500';
+        const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill';
+
+        toast.className = `${bgClass} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-auto min-w-[300px]`;
+        toast.innerHTML = `
+                <i class="bi ${icon} text-lg"></i>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+
+        container.appendChild(toast);
+
+        // Animate in
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-10', 'opacity-0');
+        });
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
     }
 
-    function closeScheduleModal() {
-        const modal = document.getElementById('schedule-modal');
-        modal.classList.remove('flex');
-        modal.classList.add('hidden');
-    }
 
-    function confirmSchedule() {
-        const timeInput = document.getElementById('schedule-time');
-        if (!timeInput.value) {
-            alert('Please select a date and time.');
-            return;
-        }
-
-        closeScheduleModal();
-        postSelectedToPinterest(timeInput.value);
-    }
 
     function generateSelectedImages() {
         const ids = getSelectedPinIds();
@@ -295,18 +457,19 @@ PINTEREST_PASSWORD=your_password</pre>
             .then(data => {
                 hideLoading();
                 if (data.success) {
-                    location.reload();
+                    showToast('Images generated successfully!', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
             })
             .catch(err => {
                 hideLoading();
-                alert('Network error: ' + err.message);
+                showToast('Network error: ' + err.message, 'error');
             });
     }
 
-    function postSelectedToPinterest(scheduledTime = null) {
+    function postSelectedToPinterest() {
         const ids = getSelectedPinIds();
         if (ids.length === 0) return;
 
@@ -320,18 +483,47 @@ PINTEREST_PASSWORD=your_password</pre>
         });
 
         if (pinsWithoutImages.length > 0) {
-            alert('Some selected pins do not have images. Please generate images first.');
+            showToast('Some selected pins do not have images. Please generate images first.', 'error');
             return;
         }
 
-        const actionText = scheduledTime ? 'Scheduling Post' : 'Posting to Pinterest';
-        const waitingText = scheduledTime ? 'Scheduling...' : 'Posting...';
+        // Get custom settings
+        const boardName = document.getElementById('board-name-input').value.trim();
+        const link = document.getElementById('destination-link-input').value.trim();
+        const scheduleDate = document.getElementById('schedule-date-input').value.trim();
+        const scheduleTime = document.getElementById('schedule-time-input').value.trim();
 
-        showLoading(actionText, `${waitingText}`);
+        const isScheduling = scheduleDate || scheduleTime;
 
-        const bodyData = { pin_ids: ids };
-        if (scheduledTime) {
-            bodyData.scheduled_time = scheduledTime;
+        if (isScheduling && (!scheduleDate || !scheduleTime)) {
+            showToast('Please select BOTH date and time for scheduling, or leave both empty to post immediately.', 'error');
+            return;
+        }
+
+        const actionText = isScheduling ? 'Scheduling Post' : 'Posting to Pinterest';
+        const waitingText = isScheduling ? 'Scheduling on Pinterest...' : 'Posting...';
+
+        showLoading(actionText, waitingText);
+
+        // Collect pin data including tags
+        const selectedPinsData = ids.map(id => {
+            const card = document.querySelector(`[data-pin-id="${id}"]`);
+            const tagInput = card.querySelector('.tags-input');
+            const tags = tagInput ? tagInput.value.trim() : '';
+            return {
+                id: id,
+                tags: tags
+            };
+        });
+
+        const bodyData = { pins_data: selectedPinsData };
+
+        if (boardName) bodyData.board_name = boardName;
+        if (link) bodyData.link = link;
+
+        if (isScheduling) {
+            bodyData.schedule_date = scheduleDate;
+            bodyData.schedule_time = scheduleTime;
         }
 
         fetch("{% url 'wizard:post_pins_pinterest' project.id %}", {
@@ -346,18 +538,90 @@ PINTEREST_PASSWORD=your_password</pre>
             .then(data => {
                 hideLoading();
                 if (data.success) {
-                    if (data.scheduled) {
-                        alert(`Successfully scheduled ${data.count} pins.`);
+                    if (data.results && data.results.length > 0) {
+                        let msg = isScheduling ? `Successfully scheduled ${data.posted} pins on Pinterest.` : `Successfully published ${data.posted} pins.`;
+                        showToast(msg, 'success');
                     }
-                    location.reload();
+                    setTimeout(() => location.reload(), 2000);
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
             })
             .catch(err => {
                 hideLoading();
-                alert('Network error: ' + err.message);
+                showToast('Network error: ' + err.message, 'error');
             });
     }
+
+    // Dynamic Time Filtering
+    function filterScheduleTimes() {
+        const dateInput = document.getElementById('schedule-date-input');
+        const timeSelect = document.getElementById('schedule-time-input');
+
+        if (!dateInput || !timeSelect) return;
+
+        const selectedDateStr = dateInput.value;
+        if (!selectedDateStr) {
+            // No date selected, show all
+            Array.from(timeSelect.options).forEach(opt => {
+                opt.hidden = false;
+                opt.disabled = false;
+            });
+            return;
+        }
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        if (selectedDateStr === todayStr) {
+            // Is Today - filter past times
+            const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+
+            Array.from(timeSelect.options).forEach(opt => {
+                const val = opt.value;
+                if (!val) return; // Skip "Post Immediately" or empty
+
+                // Parse "12:30 PM"
+                const [time, period] = val.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+
+                if (period === 'PM' && hours !== 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+
+                const optTotalMinutes = hours * 60 + minutes;
+
+                // Hide if time is in the past (adding 15 min buffer)
+                if (optTotalMinutes < currentTotalMinutes + 15) {
+                    opt.hidden = true;
+                    opt.disabled = true;
+                } else {
+                    opt.hidden = false;
+                    opt.disabled = false;
+                    opt.textContent = val;
+                }
+            });
+        } else {
+            // Future date - enable all
+            Array.from(timeSelect.options).forEach(opt => {
+                opt.hidden = false;
+                opt.disabled = false;
+                if (opt.value) opt.textContent = opt.value;
+            });
+        }
+    }
+
+    // Event Listeners for Date Input
+    document.addEventListener('DOMContentLoaded', function () {
+        const dateInput = document.getElementById('schedule-date-input');
+        if (dateInput) {
+            dateInput.addEventListener('change', filterScheduleTimes);
+            dateInput.addEventListener('input', filterScheduleTimes);
+            // Also run on load in case date is pre-filled
+            filterScheduleTimes();
+        }
+    });
 </script>
 {% endblock %}

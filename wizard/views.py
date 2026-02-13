@@ -122,22 +122,84 @@ def health_check(request):
     """Simple debug view to test if server is responding."""
     return HttpResponse("Django OK", content_type="text/plain")
 
+from django.db.models import Count, Q
+
 # ============= DASHBOARD: Project List =============
 class ProjectListView(TemplateView):
     template_name = 'wizard/project_list.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        projects = Project.objects.all().order_by('-created_at')
         
-        # Add stats to each project
+        # Optimize query with annotations to avoid N+1 problem
+        projects = Project.objects.annotate(
+            trends_count=Count('trends', distinct=True),
+            selected_keywords_count=Count('trends', filter=Q(trends__selected=True), distinct=True),
+            suggestions_count=Count('suggestions', distinct=True),
+            expanded_count=Count('expanded_keywords', distinct=True),
+            articles_count=Count('article_ideas', distinct=True),
+            pins_count=Count('pin_ideas', distinct=True),
+            blogs_count=Count('blog_posts', distinct=True)
+        ).order_by('-created_at')
+        
+        # Add stats to each project using annotated values
         projects_with_stats = []
         for project in projects:
+            # Reconstruct stats dict from annotations
+            stats = {
+                'trends_count': project.trends_count,
+                'selected_keywords': project.selected_keywords_count,
+                'suggestions_count': project.suggestions_count,
+                'expanded_count': project.expanded_count,
+                'articles_count': project.articles_count,
+                'pins_count': project.pins_count,
+                'blogs_count': project.blogs_count,
+                'total_content': project.articles_count + project.pins_count
+            }
+            
+            # Determine stage using annotated counts to avoid extra queries
+            stage_key = 'trends'
+            if project.blogs_count > 0:
+                stage_key = 'blog'
+            elif project.articles_count > 0 or project.pins_count > 0:
+                stage_key = 'export'
+            elif project.expanded_count > 0:
+                stage_key = 'content'
+            elif project.suggestions_count > 0:
+                stage_key = 'expansion'
+            elif project.selected_keywords_count > 0:
+                stage_key = 'suggestions'
+            elif project.trends_count > 0:
+                stage_key = 'review'
+                
+            # Map stage key to display name and URL
+            stage_display = {
+                'trends': 'Fetch Trends',
+                'review': 'Review Keywords',
+                'suggestions': 'Fetch Suggestions',
+                'expansion': 'Expand Keywords',
+                'content': 'Generate Content',
+                'export': 'Export Ready',
+                'blog': 'Blog Generation'
+            }.get(stage_key, 'Unknown')
+            
+            url_names = {
+                'trends': 'wizard:trend_fetch',
+                'review': 'wizard:keyword_review',
+                'suggestions': 'wizard:suggestion_fetch',
+                'expansion': 'wizard:expansion',
+                'content': 'wizard:content_gen',
+                'export': 'wizard:export',
+                'blog': 'wizard:blog_gen'
+            }
+            url_name = url_names.get(stage_key, 'wizard:trend_fetch')
+            resume_url = reverse(url_name, kwargs={'project_id': project.id})
+            
             projects_with_stats.append({
                 'project': project,
-                'stats': project.get_stats(),
-                'stage': project.get_stage_display(),
-                'resume_url': project.get_resume_url()
+                'stats': stats,
+                'stage': stage_display,
+                'resume_url': resume_url
             })
         
         context['projects_with_stats'] = projects_with_stats
@@ -1391,6 +1453,13 @@ class PinSetupView(TemplateView):
         
         context['using_session'] = has_session
         context['missing_credentials'] = not (has_session or has_creds)
+
+        # Get the selected blog post for default link
+        selected_blog = BlogPost.objects.filter(project=project, is_selected=True).order_by('-created_at').first()
+        if selected_blog and selected_blog.slug:
+            context['blog_url'] = f"https://www.dressr.ai/blog/{selected_blog.slug}"
+        else:
+            context['blog_url'] = ""
         
         return context
 
@@ -1426,7 +1495,7 @@ def generate_pin_images(request, project_id):
             prompt = generator.generate_image_prompt(
                 title=pin.title,
                 description=pin.description,
-                prompt_type="image",
+                prompt_type="pin",
                 blog_topic=pin.expanded_keyword.keyword if pin.expanded_keyword else pin.title
             )
             pin.image_prompt = prompt
@@ -1465,7 +1534,17 @@ def post_pins_pinterest(request, project_id):
         return JsonResponse({'success': False, 'error': 'Invalid request body'}, status=400)
     
     if not pin_ids:
-        return JsonResponse({'success': False, 'error': 'No pins selected'}, status=400)
+        # Fallback to check for pins_data (new format)
+        pins_data = data.get('pins_data', [])
+        if pins_data:
+            pin_ids = [p['id'] for p in pins_data]
+            # Create a map for easy tag lookup
+            items_map = {p['id']: p.get('tags', '') for p in pins_data}
+        else:
+            return JsonResponse({'success': False, 'error': 'No pins selected'}, status=400)
+    else:
+        # Legacy format support
+        items_map = {}
     
     project = get_object_or_404(Project, pk=project_id)
     pins = PinIdea.objects.filter(id__in=pin_ids, project=project, image_url__isnull=False).exclude(image_url='')
@@ -1473,27 +1552,20 @@ def post_pins_pinterest(request, project_id):
     if not pins.exists():
         return JsonResponse({'success': False, 'error': 'No pins with images found. Generate images first.'}, status=400)
     
-    # Check for scheduling
-    scheduled_time = data.get('scheduled_time')
-    if scheduled_time:
+    # Custom settings
+    board_name = data.get('board_name', '')
+    custom_link = data.get('link', '')
+    schedule_date = data.get('schedule_date', '')
+    schedule_time = data.get('schedule_time', '')
+
+    # Convert Date format (YYYY-MM-DD -> MM/DD/YYYY) for Pinterest
+    if schedule_date:
         try:
-            # Parse time (assuming ISO format from frontend)
-            from django.utils.dateparse import parse_datetime
-            dt = parse_datetime(scheduled_time)
-            if not dt:
-                 return JsonResponse({'success': False, 'error': 'Invalid date format'}, status=400)
-            
-            # Update pins to scheduled
-            count = pins.update(scheduled_at=dt, status='scheduled')
-            
-            return JsonResponse({
-                'success': True,
-                'scheduled': True,
-                'count': count,
-                'time': scheduled_time
-            })
-        except Exception as e:
-             return JsonResponse({'success': False, 'error': f'Scheduling error: {str(e)}'}, status=500)
+            parts = schedule_date.split('-')
+            if len(parts) == 3:
+                schedule_date = f"{parts[1]}/{parts[2]}/{parts[0]}"
+        except:
+            pass # Keep original if parse fails
 
     try:
         service = PinterestAutomationService()
@@ -1501,10 +1573,23 @@ def post_pins_pinterest(request, project_id):
         
         for pin in pins:
             try:
+                # Use custom link if provided, otherwise pin might not have one (or use default logic)
+                target_link = custom_link
+                
+                # Get tags for this pin
+                pin_tags = items_map.get(str(pin.id), '')
+                if not pin_tags:
+                     pin_tags = items_map.get(pin.id, '')
+
                 pinterest_url = service.post_pin(
                     image_url=pin.image_url,
                     title=pin.title,
-                    description=pin.description
+                    description=pin.description,
+                    link=target_link,
+                    board_name=board_name,
+                    schedule_date=schedule_date,
+                    schedule_time=schedule_time,
+                    tags=pin_tags
                 )
                 pin.pinterest_url = pinterest_url or ''
                 pin.posted_at = timezone.now()

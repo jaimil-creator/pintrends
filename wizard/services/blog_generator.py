@@ -2,6 +2,7 @@ import os
 import json
 import re
 import uuid
+import random
 from typing import List, Dict, Tuple
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor
@@ -253,6 +254,174 @@ NOW: Read the input below and output ONLY the prompt. No questions, no explanati
 '''
 
 
+
+# ==================== PIN GENERATION PROMPTS (RANDOMIZED) ====================
+
+SYSTEM_MESSAGE_PIN_1 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: EDITORIAL STREET STYLE (High Fashion, Candid)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for a vertical, high-fashion street style shot.
+- ANGLE: Low angle or eye-level, slightly upward to make the subject look powerful.
+- LIGHTING: Natural overcast soft light or hard afternoon sun (fashion week vibe).
+- SETTING: blurred city street background, busy calling, fashion week exterior.
+- SUBJECT: Model walking or posing confidently, candid movement (hair flip, walking stride).
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], walking on a [city street/fashion week location], candid street style, high fashion aesthetic. [Lighting details]. Pinterest aesthetic."
+'''
+
+SYSTEM_MESSAGE_PIN_2 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: MINIMALIST STUDIO (Clean, Detail-Oriented)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for a clean, minimalist studio-style shot.
+- ANGLE: Straight on, focus on the outfit details.
+- LIGHTING: Soft studio lighting, wrap-around softbox light, minimal shadows.
+- SETTING: Plain textured wall (concrete, plaster, seamless paper) in neutral tones (beige, grey, white, sage).
+- SUBJECT: Model posing artistically, relaxed but poised.
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], posing against a [neutral textured wall/studio background], minimalist aesthetic, clean lines, high detail. Soft diffused studio lighting. Pinterest aesthetic."
+'''
+
+SYSTEM_MESSAGE_PIN_3 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: GOLDEN HOUR LIFESTYLE (Warm, Emotional, Dreamy)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for a warm, dreamy lifestyle shot.
+- ANGLE: Eye-level, intimate.
+- LIGHTING: Backlit by the sun (Golden Hour), lens flare, warm glow, hazy.
+- SETTING: Field, beach, park, rooftop at sunset.
+- SUBJECT: Model laughing, spinning, or looking away, hair catching the light.
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], in a [warm outdoor setting], golden hour lighting, sun flare, backlit, dreamy lifestyle aesthetic, authentic emotion. Pinterest aesthetic."
+'''
+
+SYSTEM_MESSAGE_PIN_4 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: URBAN EDGY (High Contrast, Flash, Gritty)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for an edgy, urban night or dusk shot.
+- ANGLE: Dutch angle or wide angle close-up.
+- LIGHTING: Direct flash photography (paparazzi style) or neon city lights.
+- SETTING: Night city street, subway station, parking garage, diner, brick alley.
+- SUBJECT: Model looking cool, detached, maybe wearing sunglasses, dynamic pose.
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], in a [gritty urban night setting], direct flash photography, high contrast, edgy streetwear aesthetic. Pinterest aesthetic."
+'''
+
+
+
+# ==================== PIN GENERATION PROMPTS (RANDOMIZED) ====================
+
+SYSTEM_MESSAGE_PIN_1 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: EDITORIAL STREET STYLE (High Fashion, Candid)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for a vertical, high-fashion street style shot.
+- ANGLE: Low angle or eye-level, slightly upward to make the subject look powerful.
+- LIGHTING: Natural overcast soft light or hard afternoon sun (fashion week vibe).
+- SETTING: blurred city street background, busy calling, fashion week exterior.
+- SUBJECT: Model walking or posing confidently, candid movement (hair flip, walking stride).
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], walking on a [city street/fashion week location], candid street style, high fashion aesthetic. [Lighting details]. Pinterest aesthetic."
+'''
+
+SYSTEM_MESSAGE_PIN_2 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: MINIMALIST STUDIO (Clean, Detail-Oriented)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for a clean, minimalist studio-style shot.
+- ANGLE: Straight on, focus on the outfit details.
+- LIGHTING: Soft studio lighting, wrap-around softbox light, minimal shadows.
+- SETTING: Plain textured wall (concrete, plaster, seamless paper) in neutral tones (beige, grey, white, sage).
+- SUBJECT: Model posing artistically, relaxed but poised.
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], posing against a [neutral textured wall/studio background], minimalist aesthetic, clean lines, high detail. Soft diffused studio lighting. Pinterest aesthetic."
+'''
+
+SYSTEM_MESSAGE_PIN_3 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: GOLDEN HOUR LIFESTYLE (Warm, Emotional, Dreamy)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for a warm, dreamy lifestyle shot.
+- ANGLE: Eye-level, intimate.
+- LIGHTING: Backlit by the sun (Golden Hour), lens flare, warm glow, hazy.
+- SETTING: Field, beach, park, rooftop at sunset.
+- SUBJECT: Model laughing, spinning, or looking away, hair catching the light.
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], in a [warm outdoor setting], golden hour lighting, sun flare, backlit, dreamy lifestyle aesthetic, authentic emotion. Pinterest aesthetic."
+'''
+
+SYSTEM_MESSAGE_PIN_4 = '''Create a Pinterest-optimized vertical image prompt.
+STYLE: URBAN EDGY (High Contrast, Flash, Gritty)
+
+INPUT FORMAT: [Same as others]
+Main Blog Title: [text]
+Section Title: [text] (This is the Item/Outfit)
+Description: [text]
+
+INSTRUCTIONS:
+Create a prompt for an edgy, urban night or dusk shot.
+- ANGLE: Dutch angle or wide angle close-up.
+- LIGHTING: Direct flash photography (paparazzi style) or neon city lights.
+- SETTING: Night city street, subway station, parking garage, diner, brick alley.
+- SUBJECT: Model looking cool, detached, maybe wearing sunglasses, dynamic pose.
+- ASPECT: Vertical 2:3 ratio composition.
+
+OUTPUT FORMAT:
+"Create a realistic vertical editorial photograph with NO text. A [model attributes] model wearing [EXACT Section Title], in a [gritty urban night setting], direct flash photography, high contrast, edgy streetwear aesthetic. Pinterest aesthetic."
+'''
+
+
 class BlogGeneratorService:
     """
     AI-powered blog generation service using exact BLOG_GEN prompts and configuration.
@@ -442,6 +611,17 @@ class BlogGeneratorService:
         if prompt_type == "thumbnail":
             system_message = SYSTEM_MESSAGE_THUMBNAILS
             model_name = "Thumbnail"
+        elif prompt_type == "pin":
+            # Randomize between the 4 pin styles
+            styles = [
+                (SYSTEM_MESSAGE_PIN_1, "Editorial Street Style"),
+                (SYSTEM_MESSAGE_PIN_2, "Minimalist Studio"),
+                (SYSTEM_MESSAGE_PIN_3, "Golden Hour Lifestyle"),
+                (SYSTEM_MESSAGE_PIN_4, "Urban Edgy")
+            ]
+            selected = random.choice(styles)
+            system_message = selected[0]
+            model_name = f"Pin Image ({selected[1]})"
         else:
             system_message = SYSTEM_MESSAGE_IMAGES
             model_name = "Blog Image"

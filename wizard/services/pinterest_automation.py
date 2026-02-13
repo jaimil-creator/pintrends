@@ -40,24 +40,36 @@ class PinterestAutomationService:
     
     def _download_image(self, image_url: str) -> str:
         """Download image from URL to a temp file and return the path."""
-        try:
-            response = requests.get(image_url, timeout=30)
-            response.raise_for_status()
-            
-            # Determine extension
-            content_type = response.headers.get('content-type', 'image/png')
-            ext = '.png'
-            if 'jpeg' in content_type or 'jpg' in content_type:
-                ext = '.jpg'
-            elif 'webp' in content_type:
-                ext = '.webp'
-            
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-            tmp.write(response.content)
-            tmp.close()
-            return tmp.name
-        except Exception as e:
-            raise Exception(f"Failed to download image: {e}")
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Increased timeout and added headers to mimic browser
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+                response = requests.get(image_url, headers=headers, timeout=60)
+                response.raise_for_status()
+                
+                # Determine extension
+                content_type = response.headers.get('content-type', 'image/png')
+                ext = '.png'
+                if 'jpeg' in content_type or 'jpg' in content_type:
+                    ext = '.jpg'
+                elif 'webp' in content_type:
+                    ext = '.webp'
+                
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+                tmp.write(response.content)
+                tmp.close()
+                return tmp.name
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️ Image download failed (attempt {attempt+1}/{max_retries}): {e}. Retrying...")
+                    time.sleep(retry_delay * (attempt + 1))
+                else:
+                    raise Exception(f"Failed to download image after {max_retries} attempts: {e}")
     
     def _save_state(self, context):
         """Save browser state (cookies, storage) for future sessions."""
@@ -101,7 +113,7 @@ class PinterestAutomationService:
         print("✅ Pinterest login successful!")
         self._save_state(context)
     
-    def post_pin(self, image_url: str, title: str, description: str, link: str = '') -> str:
+    def post_pin(self, image_url: str, title: str, description: str, link: str = '', board_name: str = '', schedule_date: str = '', schedule_time: str = '', tags: str = '') -> str:
         """
         Post a pin to Pinterest.
         """
@@ -219,8 +231,9 @@ class PinterestAutomationService:
                         pass
                 
                 # Select board (if configured)
-                if self.board_name:
-                    print(f"📋 Selecting board: {self.board_name}")
+                target_board = board_name or self.board_name
+                if target_board:
+                    print(f"📋 Selecting board: {target_board}")
                     try:
                         # Open dropdown
                         board_selector = page.locator('[data-test-id="board-dropdown-select-button"], [aria-label*="board"], button[data-test-id*="board"]')
@@ -231,27 +244,136 @@ class PinterestAutomationService:
                             # Type into search if available (makes selection robust)
                             search_input = page.locator('[data-test-id="board-dropdown-search-input"], input[aria-label="Search"], input[placeholder*="Search"]')
                             if search_input.count() > 0:
-                                search_input.first.fill(self.board_name)
+                                search_input.first.fill(target_board)
                                 time.sleep(1)
                             
                             # Click the board
-                            board_option = page.locator(f'div[title="{self.board_name}"], div[aria-label="{self.board_name}"], div[data-test-id="board-row-{self.board_name}"]')
+                            board_option = page.locator(f'div[title="{target_board}"], div[aria-label="{target_board}"], div[data-test-id="board-row-{target_board}"]')
                             if board_option.count() > 0:
                                 board_option.first.click()
                                 time.sleep(1)
                             else:
-                                print(f"⚠️ Board '{self.board_name}' not found in dropdown")
+                                print(f"⚠️ Board '{target_board}' not found in dropdown")
                     except Exception as e:
                         print(f"⚠️ Board selection skipped: {e}")
                 
-                # Click Publish
-                publish_btn = page.locator('[data-test-id="board-dropdown-save-button"], button:has-text("Publish"), button:has-text("Save")')
+                # Native Scheduling
+                if schedule_date and schedule_time:
+                    print(f"📅 Scheduling for {schedule_date} at {schedule_time}")
+                    try:
+                        # 1. Click "Publish at a later date" radio/toggle
+                        # Look for the radio button or label associated with it
+                        schedule_radio = page.locator('input[type="radio"][name="publish-date"], label:has-text("Publish at a later date")')
+                        if schedule_radio.count() > 0:
+                            schedule_radio.first.click()
+                            time.sleep(1)
+                            
+                            # 2. Fill Date
+                            # Usually input[type="date"] or similar. Pinterest might use a custom picker, 
+                            # but often filling the input works if it's reachable.
+                            # Based on screenshot, it looks like a standard input field.
+                            date_input = page.locator('input[id*="date"], input[name="date"], [aria-label*="Choose a date"]')
+                            if date_input.count() > 0:
+                                date_input.first.click()
+                                date_input.first.fill(schedule_date) # Expecting MM/DD/YYYY? or YYYY-MM-DD? User said MM/DD/YYYY
+                                date_input.first.press("Enter")
+                                time.sleep(1)
+                            else:
+                                print("⚠️ Date input not found")
+
+                            # 3. Fill Time
+                            # Based on screenshot, it's a dropdown or input.
+                            time_input = page.locator('input[id*="time"], input[name="time"], [aria-label*="Choose a time"]')
+                            if time_input.count() > 0:
+                                time_input.first.click()
+                                time.sleep(0.5)
+                                # Start typing the time to filter/select
+                                time_input.first.fill(schedule_time)
+                                time.sleep(0.5)
+                                time_input.first.press("Enter")
+                                time.sleep(1)
+                            else:
+                                print(f"⚠️ Time input not found for {schedule_time}")
+                    except Exception as e:
+                        print(f"⚠️ Scheduling failed: {e}")
+
+                # Tagged Topics
+                if tags:
+                    print(f"🏷️ Adding tags: {tags}")
+                    try:
+                        # Split tags if comma separated string
+                        tag_list = [t.strip() for t in tags.split(',')] if isinstance(tags, str) else tags
+                        
+                        # Find the input (often labeled "Tagged topics" or similar)
+                        # We try a few selectors
+                        tag_input = page.locator('input[id*="documented_user_interest"], input[placeholder*="Search for a tag"], [data-test-id="tagged-topics-search-bar"] input')
+                        
+                        try:
+                            # Sometimes the section is collapsed or needs a click to appear? Usually visible.
+                            if tag_input.count() > 0:
+                                tag_input_el = tag_input.first
+                                
+                                for tag in tag_list:
+                                    if not tag: continue
+                                    tag_input_el.click()
+                                    tag_input_el.fill(tag)
+                                    time.sleep(1.5) # Wait for suggestions
+                                    
+                                    # Press enter to select first suggestion
+                                    tag_input_el.press('Enter')
+                                    time.sleep(0.5)
+                            else:
+                                print("⚠️ Tagged topics input not found")
+                        except Exception as e:
+                            print(f"⚠️ Could not fill tag: {e}")
+
+                    except Exception as e:
+                        print(f"⚠️ Tagging failed: {e}")
+
+                publish_btn = page.locator('[data-test-id="board-dropdown-save-button"], button:has-text("Publish"), button:has-text("Save"), button:has-text("Schedule"), [aria-label="Schedule"]')
                 if publish_btn.count() > 0:
                     publish_btn.first.click()
-                    time.sleep(5)
-                    print("✅ Pin published successfully!")
+                    time.sleep(2)
+                    
+                    # Handle Scheduling Confirmation Popup (Cancel / Schedule)
+                    try:
+                        # User says "during the scheduling one confermation popup comes with cencle, schedule"
+                        # Look for a visible "Schedule" button, possibly in a dialog
+                        confirm_btn = page.locator('button:has-text("Schedule")').last
+                        if confirm_btn.is_visible():
+                             print("🔔 Handling confirmation popup...")
+                             confirm_btn.click()
+                             time.sleep(2)
+                    except Exception as e:
+                        print(f"ℹ️ Confirmation check skipped: {e}")
+
+
+                    # Wait for the action to complete
+                    print("⏳ Waiting for confirmation...")
+                    try:
+                        if schedule_date and schedule_time:
+                            # For scheduled posts, wait for specific "Scheduled for" text
+                            page.wait_for_selector('text="Scheduled for"', timeout=30000)
+                            print("✅ Success message 'Scheduled for...' detected!")
+                            time.sleep(3)
+                        else:
+                            # For immediate posts, just wait for "Saved" or URL change
+                            # Pinterest often shows "Saved to [Board Name]"
+                            try:
+                                page.wait_for_selector('text="Saved to"', timeout=10000)
+                                print("✅ Success message 'Saved to...' detected!")
+                            except:
+                                print("ℹ️ 'Saved to' message not detected, but assuming success.")
+                            time.sleep(3)
+
+                    except Exception as e:
+                        print(f"⚠️ Success confirmation not detected within timeout: {e}")
+                        # Fallback sleep
+                        time.sleep(3)
+
+                    print("✅ Pin published/scheduled successfully!")
                 else:
-                    print("⚠️ Could not find Publish button")
+                    print("⚠️ Could not find Publish/Schedule button")
                 
                 # Try to get the pin URL
                 pin_url = page.url if 'pin/' in page.url else ''

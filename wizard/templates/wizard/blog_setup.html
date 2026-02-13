@@ -198,9 +198,45 @@
     }
 </style>
 
+<!-- Toast Notification -->
+<div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+    <!-- Toasts will be injected here -->
+</div>
+
 <!-- Ace Editor -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
+
 <script>
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+
+        // Colors based on type
+        const bgClass = type === 'success' ? 'bg-gray-900' : 'bg-red-600';
+        const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill';
+
+        toast.className = `${bgClass} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-auto min-w-[300px] z-[100]`;
+        toast.innerHTML = `
+                <i class="bi ${icon} text-lg"></i>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+
+        container.appendChild(toast);
+
+        // Animate in
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-10', 'opacity-0');
+        });
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
+    }
+
     let editor;
     {% if blog_json %}
     const initialJson = {{ blog_json| safe }};
@@ -211,6 +247,21 @@
     const projectId = "{{ project.id }}";
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Slug formatting logic
+        const slugInput = document.getElementById('url-slug');
+        if (slugInput) {
+            slugInput.addEventListener('input', function () {
+                let val = this.value;
+                // Replace spaces with hyphens and convert to lowercase
+                val = val.replace(/\s+/g, '-').toLowerCase();
+                // Remove multiple consecutive hyphens
+                val = val.replace(/-+/g, '-');
+                // Optional: remove non-alphanumeric chars except hyphens (user didn't explicitly ask, but good practice for slugs)
+                // val = val.replace(/[^a-z0-9-]/g, ''); 
+                this.value = val;
+            });
+        }
+
         if (!document.getElementById('json-editor')) return;
 
         // Initialize Ace Editor
@@ -242,15 +293,16 @@
         try {
             const val = JSON.parse(editor.getValue());
             editor.setValue(JSON.stringify(val, null, 2), -1);
+            showToast("JSON formatted successfully", "success");
         } catch (e) {
-            alert("Invalid JSON");
+            showToast("Invalid JSON: " + e.message, "error");
         }
     }
 
     function copyJSON() {
         navigator.clipboard.writeText(editor.getValue())
-            .then(() => alert("Copied to clipboard!"))
-            .catch(err => console.error('Failed to copy', err));
+            .then(() => showToast("Copied to clipboard!", "success"))
+            .catch(err => showToast('Failed to copy: ' + err, 'error'));
     }
 
     function updatePreview(data) {
@@ -328,7 +380,7 @@
     async function publishBlog() {
         const slug = document.getElementById('url-slug').value.trim();
         if (!slug) {
-            alert("Please enter a URL Slug");
+            showToast("Please enter a URL Slug", "error");
             return;
         }
 
@@ -372,14 +424,14 @@
             const result = await response.json();
 
             if (result.success) {
-                alert("✅ Successfully Published!");
+                showToast("✅ Successfully Published!", "success");
             } else {
-                alert("❌ Publish Failed: " + (result.error || "Unknown error"));
+                showToast("❌ Publish Failed: " + (result.error || "Unknown error"), "error");
                 console.error(result);
             }
 
         } catch (e) {
-            alert("❌ Error: " + e.message);
+            showToast("❌ Error: " + e.message, "error");
             console.error(e);
         } finally {
             btn.disabled = false;
