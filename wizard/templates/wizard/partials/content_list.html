@@ -1,3 +1,7 @@
+{% if include_button_oob %}
+{% include 'wizard/partials/generate_button.html' %}
+{% endif %}
+
 {% if keywords_with_content %}
 <div class="space-y-12">
     {% for kw in keywords_with_content %}

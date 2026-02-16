@@ -1,0 +1,204 @@
+{% extends 'wizard/base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Trend Analysis</h1>
+
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-100">
+            <h2 class="text-xl font-semibold mb-4">Analyze a Keyword</h2>
+            <form hx-get="{% url 'wizard:analysis_fetch' %}" hx-target="#analysis-results"
+                hx-indicator="#loading-indicator" class="flex gap-4">
+                <div class="flex-1">
+                    <input type="text" name="keyword" placeholder="Enter a keyword (e.g., summer outfits)"
+                        class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pinterest-red focus:border-pinterest-red outline-none transition-all"
+                        required>
+                </div>
+                <button type="submit"
+                    class="px-8 py-3 bg-pinterest-red text-white font-semibold rounded-xl hover:bg-[#ad081b] transition-colors flex items-center gap-2">
+                    <span>Analyze</span>
+                    <i class="bi bi-graph-up-arrow"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-indicator" class="htmx-indicator flex justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pinterest-red"></div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="analysis-results"></div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js Annotation Plugin -->
+<script
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+
+<script>
+    // Global function to render chart (called by HTMX response)
+    function renderpredictionChart(labels, historyData, predictionData, upperBounds, lowerBounds, separationIndex) {
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+
+        // Destroy existing chart if it exists
+        if (window.myPredictionChart) {
+            window.myPredictionChart.destroy();
+        }
+
+        window.myPredictionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Historical',
+                        data: historyData,
+                        borderColor: '#2563eb', // Blue
+                        backgroundColor: '#2563eb',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: false,
+                        tension: 0.1,
+                        spanGaps: false,
+                        order: 2
+                    },
+                    {
+                        label: 'Prediction',
+                        data: predictionData,
+                        borderColor: '#2563eb', // Blue
+                        backgroundColor: '#2563eb',
+                        borderWidth: 2,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: false,
+                        tension: 0.1,
+                        spanGaps: false,
+                        order: 3
+                    },
+                    {
+                        label: 'Upper Bound',
+                        data: upperBounds,
+                        borderColor: 'rgba(37, 99, 235, 0.4)',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        borderWidth: 1.5,
+                        borderDash: [3, 3],
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        fill: '+1',
+                        tension: 0.1,
+                        spanGaps: false,
+                        order: 4
+                    },
+                    {
+                        label: 'Lower Bound',
+                        data: lowerBounds,
+                        borderColor: 'rgba(37, 99, 235, 0.4)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 1.5,
+                        borderDash: [3, 3],
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        fill: false,
+                        tension: 0.1,
+                        spanGaps: false,
+                        order: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        align: 'start',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            font: {
+                                family: 'Inter',
+                                size: 12
+                            },
+                            filter: function (item, chart) {
+                                return !item.text.includes('Lower Bound') && !item.text.includes('Upper Bound');
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#1f2937',
+                        bodyColor: '#1f2937',
+                        borderColor: '#e5e7eb',
+                        borderWidth: 1,
+                        titleFont: { family: 'Inter', size: 13, weight: '600' },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 12,
+                        cornerRadius: 8,
+                        filter: function (item) {
+                            return item.dataset.label !== 'Lower Bound' && item.dataset.label !== 'Upper Bound';
+                        }
+                    },
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                xMin: separationIndex,
+                                xMax: separationIndex,
+                                borderColor: 'black',
+                                borderWidth: 1,
+                                borderDash: [],
+                                label: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: '#f3f4f6',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11 },
+                            color: '#6b7280',
+                            padding: 10
+                        },
+                        border: { display: false }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: true,
+                            color: '#e5e7eb'
+                        },
+                        ticks: {
+                            font: { family: 'Inter', size: 11 },
+                            color: '#6b7280',
+                            maxTicksLimit: 6,
+                            maxRotation: 0
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+</script>
+
+{% endblock %}

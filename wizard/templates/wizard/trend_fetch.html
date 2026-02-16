@@ -11,9 +11,9 @@
     </div>
 
     <!-- Filters Section (Sticky wrapper for better UX?) -->
-    <div class="mb-8">
+    <div class="mb-8 relative">
         <form id="trend-form" hx-get="{% url 'wizard:scrape_trends_htmx' project.id %}" hx-target="#trend-results"
-            hx-indicator="#loading" class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            hx-indicator="#loading-overlay" class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
 
             <!-- Filter Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -377,12 +377,59 @@
                 <button type="submit"
                     class="bg-pinterest-red hover:bg-[#ad081b] text-white font-bold py-3 px-8 rounded-full shadow-md transition-transform transform active:scale-95 flex items-center gap-2">
                     <i class="bi bi-search"></i> Fetch Trends
-                    <span id="loading" class="htmx-indicator hidden animate-spin ml-2">
-                        <i class="bi bi-arrow-repeat text-xl"></i>
-                    </span>
                 </button>
             </div>
         </form>
+
+        <!-- Full Page Loading Overlay -->
+        <div id="loading-overlay"
+            class="htmx-indicator fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+            <div class="flex flex-col items-center">
+                <div class="relative w-24 h-24 mb-6">
+                    <div class="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-t-pinterest-red rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <i class="bi bi-pinterest text-4xl text-pinterest-red"></i>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Analyzing Pinterest Trends</h2>
+                <p class="text-gray-500 font-medium">This usually takes about 30-60 seconds...</p>
+
+                <!-- Progress bar simulation -->
+                <div class="w-64 h-1.5 bg-gray-100 rounded-full mt-6 overflow-hidden">
+                    <div class="h-full bg-pinterest-red rounded-full animate-[loading-bar_10s_ease-in-out_infinite]">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            @keyframes loading-bar {
+                0% {
+                    width: 0%;
+                }
+
+                50% {
+                    width: 70%;
+                }
+
+                100% {
+                    width: 95%;
+                }
+            }
+
+            .htmx-indicator {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+
+            .htmx-request .htmx-indicator,
+            .htmx-request.htmx-indicator {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        </style>
     </div>
 
     <!-- Results Area -->

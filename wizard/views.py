@@ -9,6 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import requests
 import base64
+import zipfile
+import io
 from django.template.loader import render_to_string
 from django.views.generic import CreateView, TemplateView, View
 from django.urls import reverse
@@ -29,23 +31,38 @@ def generate_content_htmx(request, project_id):
     try:
         article_count = int(request.GET.get('article_count', 5))
         pin_count = int(request.GET.get('pin_count', 5))
+        keyword_id = request.GET.get('keyword_id')
+        gen_type = request.GET.get('type') # 'articles' or 'pins' or None (all)
     except ValueError:
         article_count = 5
         pin_count = 5
+        keyword_id = None
+        gen_type = None
 
-    # Clear existing content to allow fresh regeneration
-    ArticleIdea.objects.filter(project=project).delete()
-    PinIdea.objects.filter(project=project).delete()
-    
     generator = ContentGeneratorService()
 
     try:
-        # Fetch all expanded keywords
-        expanded_keywords = ExpandedKeyword.objects.filter(project=project, selected=True)
-        
-        if not expanded_keywords.exists():
-            return render(request, 'wizard/partials/error.html', {'error': 'No expanded keywords found. Go back and selected some phrases.'})
-        
+        if keyword_id:
+            # TARGETED REGENERATION for a single keyword
+            kw_obj = get_object_or_404(ExpandedKeyword, pk=keyword_id, project=project)
+            expanded_keywords = [kw_obj]
+            
+            if gen_type == 'articles':
+                ArticleIdea.objects.filter(expanded_keyword=kw_obj).delete()
+            elif gen_type == 'pins':
+                PinIdea.objects.filter(expanded_keyword=kw_obj).delete()
+            else:
+                ArticleIdea.objects.filter(expanded_keyword=kw_obj).delete()
+                PinIdea.objects.filter(expanded_keyword=kw_obj).delete()
+        else:
+            # GLOBAL REGENERATION
+            expanded_keywords = ExpandedKeyword.objects.filter(project=project, selected=True)
+            if not expanded_keywords.exists():
+                return render(request, 'wizard/partials/error.html', {'error': 'No expanded keywords found.'})
+            
+            ArticleIdea.objects.filter(project=project).delete()
+            PinIdea.objects.filter(project=project).delete()
+
         # Pre-fetch suggestions
         all_suggestions = list(Suggestion.objects.filter(project=project))
         suggestions_map = {}
@@ -57,57 +74,63 @@ def generate_content_htmx(request, project_id):
         generated_count = 0
         
         for kw_obj in expanded_keywords:
-            # 1. Generate Articles
-            articles = generator.generate_article_titles(
-                keyword=kw_obj.keyword,
-                count=article_count
-            )
-            
-            # Save Articles
             saved_articles = []
-            for a in articles:
-                saved_articles.append(ArticleIdea(
-                    project=project,
-                    expanded_keyword=kw_obj,
-                    title=a.get('title', ''),
-                    hook=a.get('hook', '')
-                ))
-            ArticleIdea.objects.bulk_create(saved_articles)
+            # Generate Articles if needed
+            if not gen_type or gen_type == 'articles':
+                articles = generator.generate_article_titles(keyword=kw_obj.keyword, count=article_count)
+                for a in articles:
+                    saved_articles.append(ArticleIdea(
+                        project=project, expanded_keyword=kw_obj,
+                        title=a.get('title', ''), hook=a.get('hook', '')
+                    ))
+                ArticleIdea.objects.bulk_create(saved_articles)
+            else:
+                # Need existing articles for pin context
+                articles = list(kw_obj.article_ideas.all().values('title'))
 
-            # 2. Generate Pins (Use first article title as context if avail, else keyword)
-            context_title = articles[0]['title'] if articles else kw_obj.keyword
-            context_suggestions = suggestions_map.get(kw_obj.base_keyword, [])
-            
-            pins = generator.generate_pin_ideas(
-                keyword=kw_obj.keyword,
-                article_title=context_title,
-                suggestions=context_suggestions,
-                count=pin_count
-            )
-            
-            # Save Pins
-            saved_pins = []
-            for p in pins:
-                saved_pins.append(PinIdea(
-                    project=project,
-                    expanded_keyword=kw_obj,
-                    title=p.get('title', ''),
-                    description=p.get('description', '')
-                ))
-            PinIdea.objects.bulk_create(saved_pins)
+            # Generate Pins if needed
+            if not gen_type or gen_type == 'pins':
+                context_title = articles[0]['title'] if articles else kw_obj.keyword
+                context_suggestions = suggestions_map.get(kw_obj.base_keyword, [])
+                
+                pins = generator.generate_pin_ideas(
+                    keyword=kw_obj.keyword, article_title=context_title,
+                    suggestions=context_suggestions, count=pin_count
+                )
+                
+                saved_pins = []
+                for p in pins:
+                    saved_pins.append(PinIdea(
+                        project=project, expanded_keyword=kw_obj,
+                        title=p.get('title', ''), description=p.get('description', '')
+                    ))
+                PinIdea.objects.bulk_create(saved_pins)
             
             generated_count += 1
         
-        # Fetch results with prefetch for display
+        # If it was targeted, return ONLY the card
+        if keyword_id:
+             return render(request, 'wizard/partials/keyword_content_card.html', {
+                'kw': kw_obj,
+                'article_count': article_count,
+                'pin_count': pin_count,
+            })
+
+        # Fetch results for global display
         keywords_with_content = ExpandedKeyword.objects.filter(
             project=project, selected=True
         ).prefetch_related('article_ideas', 'pin_ideas')
         
+        actual_generated_count = PinIdea.objects.filter(project=project).count()
+        
         return render(request, 'wizard/partials/content_list.html', {
+            'project': project,
             'keywords_with_content': keywords_with_content,
             'total_generated': generated_count,
+            'generated_count': actual_generated_count,
             'article_count': article_count,
-            'pin_count': pin_count
+            'pin_count': pin_count,
+            'include_button_oob': True,
         })
         
     except Exception as e:
@@ -261,7 +284,7 @@ def scrape_trends_htmx(request, project_id):
     interests = request.GET.getlist('interests')  # List of interest IDs
     interests_str = '%7C'.join(interests) if interests else ''
     
-    scraper = PinterestScraperService()
+    scraper = PinterestScraperService(headless=True)
     try:
         trends = async_to_sync(scraper.get_top_trends)(
             country=country, 
@@ -375,7 +398,7 @@ def fetch_suggestions_htmx(request, project_id):
     # Clear existing suggestions to prevent stale data
     Suggestion.objects.filter(project=project).delete()
     
-    scraper = PinterestScraperService()
+    scraper = PinterestScraperService(headless=True)
     results = []
     
     for kw in base_keywords:
@@ -457,10 +480,16 @@ def expand_keywords_htmx(request, project_id):
         })
     
     try:
+        count = int(request.GET.get('count', 10))
+    except ValueError:
+        count = 10
+
+    try:
         generator = ContentGeneratorService()
         expanded = generator.expand_keywords_with_ai(
             items=items_to_process,
-            niche=project.niche or ""
+            niche=project.niche or "",
+            count=count
         )
         
         # Save to database
@@ -797,7 +826,117 @@ def update_pin_htmx(request, pin_id):
             'keywords_with_content': keywords_with_content
         })
     
+    
     return HttpResponse(status=400)
+
+class AnalysisView(TemplateView):
+    template_name = 'wizard/analysis.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context['active_sidebar'] = 'analysis' # No sidebar for this page yet
+        return context
+
+def fetch_analysis_data(request):
+    """HTMX endpoint to fetch analysis data."""
+    from .services.prediction_service import PredictionService
+    
+    keyword = request.GET.get('keyword', '').strip()
+    if not keyword:
+        return render(request, 'wizard/partials/analysis_results.html', {'error': 'Please enter a keyword.'})
+    
+    service = PredictionService()
+    data = service.fetch_trends_data(keyword)
+    
+    if not data:
+        return render(request, 'wizard/partials/analysis_results.html', {'error': 'Could not fetch data for this keyword. It might not be trending or API is unavailable.'})
+        
+    # Process data for Chart.js
+    # Assuming data structure from Pinterest Trends API:
+    # counts: {'2023-01-01': 10, '2023-01-08': 15, ...}
+    # legacy code printed keys, let's assume 'counts' is a dict of date: value
+    
+    
+    counts = data.get('counts', [])
+    
+    # Process list of dicts: [{'date': '2025-02-07', 'count': 30, ...}]
+    try:
+        # Sort by date just in case
+        sorted_data = sorted(counts, key=lambda x: x.get('date', ''))
+        
+        labels = []
+        historical_values = []
+        prediction_values = []
+        
+        from datetime import datetime
+        
+        # Last known historical value to connect lines
+        last_history_idx = -1
+        
+        upper_bounds = []
+        lower_bounds = []
+
+        for i, point in enumerate(sorted_data):
+            date_str = point.get('date')
+            
+            # Use normalized count if available, else raw count
+            val = point.get('normalizedCount')
+            if val is None:
+                val = point.get('count', 0)
+            
+            # Check if this point is a prediction
+            is_prediction = point.get('predictedUpperBoundNormalizedCount') is not None
+            
+            # Bounds (only for predictions)
+            upper = point.get('predictedUpperBoundNormalizedCount')
+            lower = point.get('predictedLowerBoundNormalizedCount')
+            
+            # Format Date
+            if date_str:
+                try:
+                    dt = datetime.strptime(date_str, '%Y-%m-%d')
+                    labels.append(dt.strftime('%b %d, %Y'))
+                except:
+                    labels.append(date_str)
+            else:
+                labels.append('')
+
+            if is_prediction:
+                prediction_values.append(val)
+                historical_values.append(None) # Gap in history
+                upper_bounds.append(upper if upper is not None else val)
+                lower_bounds.append(lower if lower is not None else val)
+            else:
+                historical_values.append(val)
+                prediction_values.append(None) # Gap in prediction
+                upper_bounds.append(None)
+                lower_bounds.append(None)
+                last_history_idx = i
+        
+        # Connect the lines
+        if last_history_idx != -1 and last_history_idx + 1 < len(prediction_values):
+             prediction_values[last_history_idx] = historical_values[last_history_idx]
+             # For bounds, start from the last history point value to avoid gaps
+             # (Assigning raw value as "tight" bound at transition)
+             if len(upper_bounds) > last_history_idx:
+                 upper_bounds[last_history_idx] = historical_values[last_history_idx]
+                 lower_bounds[last_history_idx] = historical_values[last_history_idx]
+        
+        # Serialize to JSON to ensure None -> null for JavaScript
+        import json
+        return render(request, 'wizard/partials/analysis_results_v2.html', {
+            'keyword': keyword,
+            'display_title': keyword.title(),
+            'labels': json.dumps(labels),
+            'history': json.dumps(historical_values),
+            'prediction': json.dumps(prediction_values),
+            'upper': json.dumps(upper_bounds),
+            'lower': json.dumps(lower_bounds),
+            'separation_index': last_history_idx if last_history_idx != -1 else -1,
+        })
+    except Exception as e:
+        return render(request, 'wizard/partials/analysis_results_v2.html', {'error': f'Error processing data: {str(e)}'})
+
 
 
 # ============= STEP 7: Blog Generation =============
@@ -932,14 +1071,6 @@ def generate_blog_htmx(request, article_id):
             ]
         }
         
-        # Generate DOCX
-        docx_stream = generator.create_docx(blog_data)
-        blog_post.docx_file.save(
-            f'blog_{blog_post.id}.docx',
-            ContentFile(docx_stream.read()),
-            save=False
-        )
-        
         # Generate JSON
         json_data = generator.create_pinterest_json(blog_data)
         blog_post.json_file.save(
@@ -975,7 +1106,11 @@ def generate_blog_htmx(request, article_id):
 def blog_detail_htmx(request, blog_id):
     """HTMX endpoint - Show blog preview."""
     blog_post = get_object_or_404(BlogPost, pk=blog_id)
-    return render(request, 'wizard/partials/blog_detail_modal.html', {'blog': blog_post})
+    sections = blog_post.sections.all().order_by('order')
+    return render(request, 'wizard/partials/blog_preview.html', {
+        'blog_post': blog_post,
+        'sections': sections
+    })
 
 @require_POST
 def toggle_blog_selection_htmx(request, blog_id):
@@ -1092,14 +1227,6 @@ def regenerate_blog_htmx(request, blog_id):
                 for section in blog_post.sections.all()
             ]
         }
-        
-        # Generate DOCX
-        docx_stream = generator.create_docx(blog_data)
-        blog_post.docx_file.save(
-            f'blog_{blog_post.id}.docx',
-            ContentFile(docx_stream.read()),
-            save=False
-        )
         
         # Generate JSON
         json_data = generator.create_pinterest_json(blog_data)
@@ -1251,71 +1378,6 @@ def blog_update(request, blog_id):
 
     return HttpResponse(status=400)
 
-def export_blog_docx(request, blog_id):
-    """Download blog as DOCX file (Generated on-demand)."""
-    from django.http import FileResponse
-    from django.core.files.base import ContentFile
-    from .services.blog_generator import BlogGeneratorService
-    
-    blog_post = get_object_or_404(BlogPost, pk=blog_id)
-    
-    try:
-        # Generate DOCX on the fly
-        generator = BlogGeneratorService()
-        
-        # Helper to get description string from list or string
-        def get_desc(d):
-            if isinstance(d, list):
-                return d[0] if d else ""
-            return str(d)
-
-        # Construct blog_data from structured_content if available
-        if blog_post.structured_content:
-            sc = blog_post.structured_content
-            blog_data = {
-                'topic': sc.get('title', blog_post.topic),
-                'intro': get_desc(sc.get('description', [blog_post.intro])),
-                'conclusion': get_desc(sc.get('conclusion', [blog_post.conclusion])),
-                'thumbnail_url': sc.get('thumbnail_url', blog_post.thumbnail_url),
-                'sections': [
-                    {
-                        'title': f.get('title'),
-                        'description': get_desc(f.get('description', [''])),
-                        'image_url': f.get('image_url')
-                    }
-                    for f in sc.get('features', [])
-                ]
-            }
-        else:
-            # Fallback to DB relational data
-            blog_data = {
-                'topic': blog_post.topic,
-                'intro': blog_post.intro,
-                'conclusion': blog_post.conclusion,
-                'thumbnail_url': blog_post.thumbnail_url,
-                'sections': [
-                    {
-                        'title': section.title,
-                        'description': section.description,
-                        'image_url': section.image_url
-                    }
-                    for section in blog_post.sections.all()
-                ]
-            }
-        
-        docx_stream = generator.create_docx(blog_data)
-        
-        # Serve stream directly
-        response = FileResponse(
-            docx_stream,
-            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-        response['Content-Disposition'] = f'attachment; filename="blog_{blog_post.id}.docx"'
-        return response
-        
-    except Exception as e:
-        print(f"Error generating DOCX export: {e}")
-        return HttpResponse(f"Error generating DOCX: {str(e)}", status=500)
 
 def export_blog_json(request, blog_id):
     """Download blog as Pinterest JSON (Generated on-demand)."""
@@ -1358,6 +1420,86 @@ def export_blog_json(request, blog_id):
     except Exception as e:
         print(f"Error serving JSON export: {e}")
         return HttpResponse(f"Error serving JSON: {str(e)}", status=500)
+
+
+def download_blog_images(request, blog_id):
+    """Gathers all section images in parallel with connection pooling and profiling."""
+    from concurrent.futures import ThreadPoolExecutor
+    from django.http import StreamingHttpResponse
+    import time
+    
+    start_time = time.time()
+    print(f"\n🚀 DOWNLOAD START: Blog {blog_id}")
+    
+    blog_post = get_object_or_404(BlogPost, pk=blog_id)
+    sections = blog_post.sections.all()
+    
+    if not sections:
+        return HttpResponse("No images found in this blog.", status=404)
+        
+    session = requests.Session()
+    # Adapter for more retries/connections if needed
+    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+    def download_image(section):
+        if not section.image_url:
+            return None
+        img_start = time.time()
+        try:
+            url = section.image_url
+            if url.startswith('/') and not url.startswith('//'):
+                url = request.build_absolute_uri(url)
+            
+            print(f"  [~] Worker starting: {url[:60]}...")
+            
+            # Using session for connection reuse
+            response = session.get(url, timeout=12, stream=True)
+            if response.status_code == 200:
+                content = response.content # Fully download
+                content_type = response.headers.get('Content-Type', '').lower()
+                ext = ".png"
+                if 'jpeg' in content_type or 'jpg' in content_type:
+                    ext = ".jpg"
+                elif 'webp' in content_type:
+                    ext = ".webp"
+                
+                filename = f"section_{section.order}{ext}"
+                elapsed = time.time() - img_start
+                print(f"  [✓] Worker finished: {filename} ({len(content)} bytes) - {elapsed:.2f}s")
+                return filename, content
+            else:
+                print(f"  [✗] Worker failed: {url} (Status: {response.status_code})")
+        except Exception as e:
+            print(f"  [!] Worker error: {section.image_url} - {str(e)}")
+        return None
+
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_STORED) as zip_file:
+        # Increase workers to handle more concurrent external requests
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            valid_sections = [s for s in sections if s.image_url]
+            results = list(executor.map(download_image, valid_sections))
+            
+            for result in results:
+                if result:
+                    filename, content = result
+                    zip_file.writestr(filename, content)
+                    
+    total_duration = time.time() - start_time
+    zip_size = zip_buffer.tell()
+    print(f"🏁 DOWNLOAD READY: Blog {blog_id} (Total: {total_duration:.2f}s, Size: {zip_size/1024/1024:.2f} MB)")
+    
+    if zip_size == 0:
+        return HttpResponse("Could not download any images. They might have expired or be temporarily unavailable.", status=400)
+        
+    zip_buffer.seek(0)
+    response = StreamingHttpResponse(zip_buffer, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="blog_{blog_id}_images.zip"'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 # ============= Blog Setup & Pin Setup =============
@@ -1634,8 +1776,13 @@ def post_pins_pinterest(request, project_id):
                 if not pin_tags:
                      pin_tags = items_map.get(pin.id, '')
 
+                # Ensure image_url is absolute for PinterestAutomationService
+                image_url = pin.image_url
+                if image_url and not image_url.startswith(('http://', 'https://')):
+                    image_url = request.build_absolute_uri(image_url)
+
                 pinterest_url = service.post_pin(
-                    image_url=pin.image_url,
+                    image_url=image_url,
                     title=pin.title,
                     description=pin.description,
                     link=target_link,
@@ -1664,4 +1811,52 @@ def post_pins_pinterest(request, project_id):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def get_project_images_htmx(request, project_id):
+    """Fetch all images (thumbnails and section images) for a project."""
+    project = get_object_or_404(Project, pk=project_id)
+    images = []
+    
+    # Only get section images as they are 2:3 ratio (thumbnails are 16:9)
+    sections = BlogSection.objects.filter(blog_post__project=project)
+    for s in sections:
+        if s.image_url:
+            images.append({
+                'url': s.image_url,
+                'source': f"Blog Section {s.order}: {s.title}"
+            })
+            
+    return render(request, 'wizard/partials/project_image_gallery.html', {
+        'images': images,
+        'project': project
+    })
+
+@csrf_exempt
+def update_pin_image_htmx(request, pin_id):
+    """Update a pin's image via selection or upload."""
+    pin = get_object_or_404(PinIdea, pk=pin_id)
+    
+    if request.method == 'POST':
+        image_url = request.POST.get('image_url')
+        custom_file = request.FILES.get('custom_image')
+        
+        if custom_file:
+            pin.custom_image = custom_file
+            pin.image_source = 'upload'
+            # We'll update image_url after save to point to the local file URL
+            pin.image_url = "" 
+            pin.save()
+            # Refresh to get the URL
+            if pin.custom_image:
+                pin.image_url = pin.custom_image.url
+                pin.save()
+        elif image_url:
+            pin.image_url = image_url
+            pin.image_source = 'blog'
+            pin.custom_image = None
+            pin.save()
+            
+    return render(request, 'wizard/partials/pin_image_preview.html', {'pin': pin})
+
 

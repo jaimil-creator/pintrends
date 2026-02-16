@@ -5,10 +5,10 @@ import uuid
 import random
 from typing import List, Dict, Tuple
 from io import BytesIO
-from concurrent.futures import ThreadPoolExecutor
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from pathlib import Path
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
 
 # Load env from root
 env_path = Path(__file__).resolve().parent.parent.parent / '.env'
@@ -673,12 +673,12 @@ Description: {description}"""
             import fal_client
             
             # Convert aspect ratio format
-            if aspect_ratio == "3:4":
-                fal_aspect = "3:4"
+            if aspect_ratio == "2:3":
+                fal_aspect = "2:3"
             elif aspect_ratio == "16:9":
                 fal_aspect = "16:9"
             else:
-                fal_aspect = "3:4"
+                fal_aspect = "2:3"
             
             print(f"🎨 Generating Image with Fal AI (Aspect Ratio: {fal_aspect})...")
             
@@ -711,7 +711,7 @@ Description: {description}"""
             
             for key, prompt in prompts.items():
                 if prompt:
-                    aspect_ratio = "16:9" if key == 'thumbnail' else "3:4"
+                    aspect_ratio = "16:9" if key == 'thumbnail' else "2:3"
                     futures[key] = executor.submit(self.generate_image, prompt, aspect_ratio)
             
             for key, future in futures.items():
@@ -736,77 +736,6 @@ Description: {description}"""
             print(f"Error downloading image: {e}")
             return None
     
-    def create_docx(self, blog_data: Dict) -> BytesIO:
-        """Create Word document from blog data with parallel image downloading."""
-        from docx import Document
-        from docx.shared import Inches
-        
-        # 1. Collect all image URLs
-        urls_to_download = []
-        if blog_data.get('thumbnail_url'):
-            urls_to_download.append(blog_data['thumbnail_url'])
-        
-        for section in blog_data.get('sections', []):
-            if section.get('image_url'):
-                urls_to_download.append(section['image_url'])
-        
-        # 2. Download images in parallel
-        downloaded_images = {}
-        if urls_to_download:
-            print(f"⬇️ Downloading {len(urls_to_download)} images for DOCX generation...")
-            with ThreadPoolExecutor(max_workers=8) as executor:
-                # Create a map of future -> url
-                future_to_url = {executor.submit(self.download_image, url): url for url in urls_to_download}
-                
-                for future in future_to_url:
-                    url = future_to_url[future]
-                    try:
-                        image_stream = future.result()
-                        if image_stream:
-                            downloaded_images[url] = image_stream
-                    except Exception as e:
-                        print(f"Failed to download image {url}: {e}")
-
-        # 3. Create Document
-        doc = Document()
-        doc.add_heading(blog_data['topic'].upper(), 0)
-        
-        # Add thumbnail
-        if blog_data.get('thumbnail_url') and blog_data['thumbnail_url'] in downloaded_images:
-            try:
-                # Reset stream position just in case
-                img_stream = downloaded_images[blog_data['thumbnail_url']]
-                img_stream.seek(0) 
-                doc.add_picture(img_stream, width=Inches(6))
-            except Exception as e:
-                print(f"Error adding thumbnail: {e}")
-        
-        # Add intro
-        doc.add_paragraph(blog_data['intro'])
-        
-        # Add sections
-        for section in blog_data['sections']:
-            doc.add_heading(section['title'], level=1)
-            
-            if section.get('image_url') and section['image_url'] in downloaded_images:
-                try:
-                    img_stream = downloaded_images[section['image_url']]
-                    img_stream.seek(0)
-                    doc.add_picture(img_stream, width=Inches(4))
-                except Exception as e:
-                    print(f"Error adding section image: {e}")
-            
-            doc.add_paragraph(section['description'])
-        
-        # Add conclusion
-        if blog_data.get('conclusion'):
-            doc.add_heading("Conclusion", level=1)
-            doc.add_paragraph(blog_data['conclusion'])
-        
-        # Save to BytesIO
-        docx_stream = BytesIO()
-        doc.save(docx_stream)
-        docx_stream.seek(0)
         return docx_stream
     
     def create_pinterest_json(self, blog_data: Dict) -> Dict:

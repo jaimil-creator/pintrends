@@ -1,0 +1,29 @@
+<div class="w-20 h-28 shrink-0 rounded-xl overflow-hidden bg-gray-50 shadow-sm relative group">
+    {% if pin.image_url %}
+    <img src="{{ pin.image_url }}" alt="{{ pin.title }}" class="w-full h-full object-cover">
+    <div
+        class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <button type="button" onclick="openImageModal('{{ pin.id }}', event)"
+            class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all shadow-lg">
+            <i class="bi bi-pencil-square text-lg"></i>
+        </button>
+    </div>
+    {% else %}
+    <div class="w-full h-full flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 hover:border-pinterest-red/40 transition-colors"
+        onclick="openImageModal('{{ pin.id }}', event)">
+        <i class="bi bi-image text-2xl text-gray-300"></i>
+        <span class="text-[8px] text-gray-400 font-bold mt-1 uppercase tracking-tighter">Choose</span>
+    </div>
+    {% endif %}
+
+    <!-- Hidden badge for source -->
+    {% if pin.image_source == 'blog' %}
+    <div
+        class="absolute top-1 left-1 bg-blue-500 text-white text-[6px] px-1 rounded-sm font-bold uppercase pointer-events-none">
+        Blog</div>
+    {% elif pin.image_source == 'upload' %}
+    <div
+        class="absolute top-1 left-1 bg-purple-500 text-white text-[6px] px-1 rounded-sm font-bold uppercase pointer-events-none">
+        Local</div>
+    {% endif %}
+</div>

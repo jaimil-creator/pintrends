@@ -46,13 +46,13 @@
 
 
         <button onclick="showRegenerateConfirm({{ blog_post.id }})"
-            class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold py-2 px-3 rounded-full transition-colors text-xs">
+            class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold py-2 px-3 rounded-full transition-colors text-xs text-center">
             <i class="bi bi-arrow-clockwise"></i> Regenerate
         </button>
 
-        <a href="{% url 'wizard:export_blog_docx' blog_post.id %}"
-            class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-2 px-3 rounded-full transition-colors text-xs text-center">
-            <i class="bi bi-file-earmark-text"></i> DOCX
+        <a href="{% url 'wizard:download_blog_images' blog_post.id %}" hx-disable download
+            class="flex-1 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-2 px-3 rounded-full transition-colors text-xs text-center">
+            <i class="bi bi-images"></i> Images
         </a>
 
         <a href="{% url 'wizard:export_blog_json' blog_post.id %}"

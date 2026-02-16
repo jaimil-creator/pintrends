@@ -11,12 +11,19 @@
             <p class="text-gray-500">Combinations of your keywords and suggestions</p>
         </div>
         <div class="flex items-center gap-4">
-            <button
-                class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-full transition-colors flex items-center gap-2"
-                hx-get="{% url 'wizard:expand_keywords_htmx' project.id %}" hx-target="#expansion-container"
-                hx-swap="innerHTML" hx-indicator="#loading-spinner">
-                <i class="bi bi-stars"></i> Expand with AI
-            </button>
+            <form hx-get="{% url 'wizard:expand_keywords_htmx' project.id %}" hx-target="#expansion-container"
+                hx-swap="innerHTML" hx-indicator="#loading-spinner" class="flex items-center gap-2">
+                <div class="flex items-center bg-gray-100 rounded-full px-4 py-2 border border-gray-200">
+                    <span class="text-sm font-semibold text-gray-500 mr-2">Count:</span>
+                    <input type="number" name="count" value="10" min="1" max="20"
+                        class="w-12 bg-transparent border-none p-0 text-center font-bold text-gray-900 focus:ring-0 outline-none"
+                        title="Number of keywords per topic">
+                </div>
+                <button type="submit"
+                    class="bg-gray-900 hover:bg-black text-white font-bold py-3 px-6 rounded-full transition-colors flex items-center gap-2">
+                    <i class="bi bi-stars"></i> Expand with AI
+                </button>
+            </form>
             <form method="post" class="inline-block">
                 {% csrf_token %}
                 <button type="submit" name="proceed" value="1"
@@ -51,16 +58,6 @@
     </div>
 
     <!-- Loading -->
-    <style>
-        .htmx-indicator {
-            display: none;
-        }
-
-        .htmx-request .htmx-indicator,
-        .htmx-request.htmx-indicator {
-            display: block;
-        }
-    </style>
     <div id="loading-spinner" class="htmx-indicator w-full text-center py-20">
         <div class="inline-flex items-center justify-center animate-spin">
             <div class="w-12 h-12 border-4 border-gray-200 border-t-pinterest-red rounded-full"></div>

@@ -100,6 +100,19 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #d1d5db;
         }
+
+        /* HTMX Indicator Styles */
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+            pointer-events: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            opacity: 1 !important;
+            pointer-events: all !important;
+        }
     </style>
 </head>
 
@@ -138,16 +151,11 @@
 
             <!-- Right Actions -->
             <div class="flex items-center gap-2">
-                <button
-                    class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 transition-colors relative">
-                    <i class="bi bi-bell-fill text-xl"></i>
-                    <span
-                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-pinterest-red rounded-full border-2 border-white"></span>
-                </button>
-                <button
-                    class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 transition-colors">
-                    <i class="bi bi-chat-dots-fill text-xl"></i>
-                </button>
+                <a href="{% url 'wizard:analysis' %}"
+                    class="h-12 px-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-900 font-semibold transition-colors gap-2">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Analysis</span>
+                </a>
                 <a href="#"
                     class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 font-bold hover:bg-gray-300 transition-colors overflow-hidden">
                     <span class="text-sm">PT</span>

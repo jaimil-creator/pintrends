@@ -128,9 +128,19 @@ class PinIdea(models.Model):
     title = models.CharField(max_length=500)
     description = models.TextField()
     
-    # Image generation
-    image_url = models.URLField(max_length=500, blank=True)
+    # Image management
+    image_url = models.CharField(max_length=1024, blank=True)
     image_prompt = models.TextField(blank=True)
+    custom_image = models.ImageField(upload_to='pins/custom/', blank=True, null=True)
+    image_source = models.CharField(
+        max_length=20, 
+        default='generated',
+        choices=[
+            ('generated', 'AI Generated'),
+            ('blog', 'Blog Image'),
+            ('upload', 'Manual Upload')
+        ]
+    )
     
     # Pinterest posting
     pinterest_url = models.URLField(max_length=500, blank=True)
@@ -178,7 +188,6 @@ class BlogPost(models.Model):
     structured_content = models.JSONField(default=dict, blank=True)
     
     # Files
-    docx_file = models.FileField(upload_to='blog_exports/', blank=True, null=True)
     json_file = models.FileField(upload_to='blog_exports/', blank=True, null=True)
     
     # Metadata

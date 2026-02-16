@@ -147,13 +147,6 @@ PINTEREST_PASSWORD=your_password</pre>
                     class="font-semibold text-gray-600">{{ project.name }}</span></p>
         </div>
         <div class="flex items-center gap-3">
-            <button id="generate-images-btn" onclick="generateSelectedImages()"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-sm font-semibold rounded-full hover:from-purple-600 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled>
-                <i class="bi bi-image"></i>
-                <span>Generate Images</span>
-                <span id="selected-count" class="ml-1 bg-white/20 px-2 py-0.5 rounded-full text-xs hidden">0</span>
-            </button>
             <button id="post-pinterest-btn" onclick="postSelectedToPinterest()"
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-pinterest-red text-white text-sm font-semibold rounded-full hover:bg-[#ad081b] transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled>
@@ -193,17 +186,10 @@ PINTEREST_PASSWORD=your_password</pre>
             <input type="checkbox" name="selected_pins" value="{{ pin.id }}" class="hidden pin-checkbox">
 
             <div class="flex items-start gap-4">
-                <!-- Image Preview (if generated) -->
-                {% if pin.image_url %}
-                <div class="w-20 h-28 shrink-0 rounded-xl overflow-hidden bg-gray-50 shadow-sm">
-                    <img src="{{ pin.image_url }}" alt="{{ pin.title }}" class="w-full h-full object-cover">
+                <!-- Image Preview (choose/upload) -->
+                <div id="pin-image-{{ pin.id }}" class="shrink-0">
+                    {% include "wizard/partials/pin_image_preview.html" with pin=pin %}
                 </div>
-                {% else %}
-                <div
-                    class="w-20 h-28 shrink-0 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
-                    <i class="bi bi-image text-xl text-gray-300"></i>
-                </div>
-                {% endif %}
 
                 <!-- Content -->
                 <div class="flex-1 min-w-0 pr-10"> <!-- Added padding right to avoid overlap with toggle -->
@@ -319,7 +305,103 @@ PINTEREST_PASSWORD=your_password</pre>
     <!-- Toasts will be injected here -->
 </div>
 
+<!-- Image Selection Modal -->
+<div id="image-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
+    <div
+        class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div class="p-8 pb-4 flex items-center justify-between border-b border-gray-50">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Choose Pin Image</h3>
+                <p class="text-sm text-gray-500 mt-1">Select from blog images or upload your own</p>
+            </div>
+            <button onclick="closeImageModal()"
+                class="w-10 h-10 rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div id="gallery-container" class="min-h-[300px]">
+            <!-- Content loaded via HTMX -->
+            <div class="flex items-center justify-center py-20">
+                <div class="w-10 h-10 rounded-full border-4 border-gray-100 border-t-pinterest-red animate-spin"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    let currentPinId = null;
+
+    function openImageModal(pinId, event) {
+        if (event) event.stopPropagation();
+        currentPinId = pinId;
+        const modal = document.getElementById('image-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Load gallery via HTMX-like fetch
+        const galleryContainer = document.getElementById('gallery-container');
+        fetch(`{% url 'wizard:get_project_images_htmx' project.id %}`)
+            .then(res => res.text())
+            .then(html => {
+                galleryContainer.innerHTML = html;
+            });
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('image-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentPinId = null;
+    }
+
+    function selectGalleryImage(url) {
+        if (!currentPinId) return;
+
+        const pinImageContainer = document.getElementById(`pin-image-${currentPinId}`);
+        const formData = new FormData();
+        formData.append('image_url', url);
+
+        fetch(`/pin/${currentPinId}/update-image/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+            .then(res => res.text())
+            .then(html => {
+                pinImageContainer.innerHTML = html;
+                closeImageModal();
+                showToast('Pin image updated!', 'success');
+            });
+    }
+
+    function handleCustomUpload(input) {
+        if (!currentPinId || !input.files[0]) return;
+
+        const pinImageContainer = document.getElementById(`pin-image-${currentPinId}`);
+        const formData = new FormData();
+        formData.append('custom_image', input.files[0]);
+
+        // Show loading in gallery
+        document.getElementById('gallery-grid').classList.add('opacity-40', 'pointer-events-none');
+
+        fetch(`/pin/${currentPinId}/update-image/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+            .then(res => res.text())
+            .then(html => {
+                pinImageContainer.innerHTML = html;
+                closeImageModal();
+                showToast('Custom image uploaded!', 'success');
+            });
+    }
+
     function togglePinSelection(card, pinId) {
         const checkbox = card.querySelector('.pin-checkbox');
         const toggleBtn = card.querySelector('.selection-toggle');
@@ -368,22 +450,18 @@ PINTEREST_PASSWORD=your_password</pre>
     function updateSelection() {
         const ids = getSelectedPinIds();
         const count = ids.length;
-        const countEl = document.getElementById('selected-count');
-        const genBtn = document.getElementById('generate-images-btn');
         const postBtn = document.getElementById('post-pinterest-btn');
         const scheduleBtn = document.getElementById('schedule-btn');
         const infoEl = document.getElementById('selection-info');
 
-        countEl.textContent = count;
-        countEl.classList.toggle('hidden', count === 0);
-
-        genBtn.disabled = count === 0;
-        postBtn.disabled = count === 0;
+        if (postBtn) postBtn.disabled = count === 0;
         if (scheduleBtn) scheduleBtn.disabled = count === 0;
 
-        infoEl.textContent = count > 0
-            ? `${count} pin${count > 1 ? 's' : ''} selected`
-            : '{{ pin_ideas|length }} pin ideas available';
+        if (infoEl) {
+            infoEl.textContent = count > 0
+                ? `${count} pin${count > 1 ? 's' : ''} selected`
+                : '{{ pin_ideas|length }} pin ideas available';
+        }
     }
 
     function toggleSelectAll(checkbox) {
@@ -483,7 +561,7 @@ PINTEREST_PASSWORD=your_password</pre>
         });
 
         if (pinsWithoutImages.length > 0) {
-            showToast('Some selected pins do not have images. Please generate images first.', 'error');
+            showToast('Some selected pins do not have images. Please select images for each pin first.', 'error');
             return;
         }
 

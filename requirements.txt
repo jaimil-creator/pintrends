@@ -1,0 +1,16 @@
+django
+dj-database-url
+django-crispy-forms
+crispy-bootstrap5
+django-q2
+openai
+requests
+beautifulsoup4
+playwright
+python-dotenv
+python-docx==1.1.0
+together==1.2.1
+fal-client==0.5.4
+google-genai==1.0.0
+tenacity==8.2.3
+setuptools

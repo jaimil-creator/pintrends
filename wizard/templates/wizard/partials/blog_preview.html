@@ -57,10 +57,11 @@
                     <i class="bi bi-arrow-clockwise"></i> Regenerate
                 </button>
 
-                <a href="{% url 'wizard:export_blog_docx' blog_post.id %}"
-                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-center">
-                    <i class="bi bi-download"></i> Download DOCX
+                <a href="{% url 'wizard:download_blog_images' blog_post.id %}" hx-disable download
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-center">
+                    <i class="bi bi-images"></i> Download All Images
                 </a>
+
                 <a href="{% url 'wizard:export_blog_json' blog_post.id %}"
                     class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-center">
                     <i class="bi bi-download"></i> Download JSON

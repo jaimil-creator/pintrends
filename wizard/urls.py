@@ -52,9 +52,10 @@ urlpatterns = [
     path('blog/<int:blog_id>/detail/', views.blog_detail_htmx, name='blog_detail_htmx'),
     path('blog/<int:blog_id>/edit/', views.blog_edit, name='blog_edit'),
     path('blog/<int:blog_id>/update/', views.blog_update, name='blog_update'),
-    path('blog/<int:blog_id>/export/docx/', views.export_blog_docx, name='export_blog_docx'),
     path('blog/<int:blog_id>/export/json/', views.export_blog_json, name='export_blog_json'),
     path('blog/<int:blog_id>/toggle-selection/', views.toggle_blog_selection_htmx, name='toggle_blog_selection_htmx'),
+    path('<int:project_id>/project-images/', views.get_project_images_htmx, name='get_project_images_htmx'),
+    path('pin/<int:pin_id>/update-image/', views.update_pin_image_htmx, name='update_pin_image_htmx'),
     
     # Blog Setup & Pin Setup (Project Sidebar)
     path('<int:project_id>/blog-setup/', views.BlogSetupView.as_view(), name='blog_setup'),
@@ -62,4 +63,9 @@ urlpatterns = [
     path('<int:project_id>/pin-setup/', views.PinSetupView.as_view(), name='pin_setup'),
     path('<int:project_id>/pin-setup/generate-images/', views.generate_pin_images, name='generate_pin_images'),
     path('<int:project_id>/pin-setup/post-pinterest/', views.post_pins_pinterest, name='post_pins_pinterest'),
+    
+    # Analysis
+    path('analysis/', views.AnalysisView.as_view(), name='analysis'),
+    path('analysis/fetch/', views.fetch_analysis_data, name='analysis_fetch'),
+    path('blog/<int:blog_id>/download-images/', views.download_blog_images, name='download_blog_images'),
 ]

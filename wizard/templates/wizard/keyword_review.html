@@ -37,48 +37,35 @@
         </div>
     </div>
 
-    <!-- Masonry Grid -->
-    <div class="masonry-grid w-full">
-        <!-- Grid Sizer -->
-        <div class="grid-sizer w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%]"></div>
-        <div class="gutter-sizer w-[2%]"></div>
-
+    <!-- CSS Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full">
         {% for kw in selected_keywords %}
-        <div class="grid-item w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%] mb-4 px-1" id="chip-{{ kw.id }}">
-            <div
-                class="group relative bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-default">
+        <div class="group relative bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
+            id="chip-{{ kw.id }}">
+            <div class="flex justify-between items-start mb-2">
+                {% if kw.trend_score %}
+                <span
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    Score: {{ kw.trend_score }}
+                </span>
+                {% else %}
+                <span
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    Manual
+                </span>
+                {% endif %}
 
-                <!-- Visual Placeholder -->
-                <div
-                    class="aspect-[3/4] w-full bg-gray-100 relative flex flex-col items-center justify-center p-6 text-center">
-                    <!-- Random light colored backgrounds -->
-                    <div class="absolute inset-0 opacity-10 bg-gradient-to-tr from-gray-200 to-gray-400"></div>
-
-                    <h1 class="text-6xl font-black text-gray-200 select-none">
-                        {{ kw.keyword|slice:":1"|upper }}
-                    </h1>
-
-                    <div class="relative z-10 mt-4">
-                        <h3 class="font-bold text-gray-900 leading-tight mb-1 break-words">
-                            {{ kw.keyword }}
-                        </h3>
-                        <span class="text-xs text-gray-500 font-medium">
-                            {% if kw.trend_score %}Score: {{ kw.trend_score }}{% else %}Manual{% endif %}
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Dark Overlay & Remove Button (Appears on Hover) -->
-                <div
-                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-start justify-end p-3 z-20">
-                    <button
-                        class="bg-white hover:bg-gray-100 text-pinterest-red font-bold py-2 px-4 rounded-full shadow-lg transform transition-transform scale-90 group-hover:scale-100 flex items-center gap-2"
-                        hx-delete="{% url 'wizard:remove_keyword' project.id kw.id %}" hx-target="#chip-{{ kw.id }}"
-                        hx-swap="outerHTML">
-                        <i class="bi bi-trash"></i> Remove
-                    </button>
-                </div>
+                <button
+                    class="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 p-1"
+                    hx-delete="{% url 'wizard:remove_keyword' project.id kw.id %}" hx-target="#chip-{{ kw.id }}"
+                    hx-swap="outerHTML" title="Remove keyword">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
+
+            <h3 class="font-bold text-gray-900 leading-tight break-words text-lg">
+                {{ kw.keyword|title }}
+            </h3>
         </div>
         {% empty %}
         <div class="w-full text-center py-20 col-span-full">

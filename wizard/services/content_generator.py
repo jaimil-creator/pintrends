@@ -11,19 +11,20 @@ load_dotenv(dotenv_path=env_path)
 
 class ContentGeneratorService:
     def __init__(self):
-        self.api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+        # OpenRouter only
+        self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.base_url = "https://openrouter.ai/api/v1"
         self.model = os.getenv("OPENROUTER_MODEL", "google/gemini-2.0-flash-lite-preview-02-05:free")
         
         self.client = None
-        if self.api_key:
+        if self.api_key and self.api_key != "your_openai_api_key_here":
             try:
                 self.client = OpenAI(
                     base_url=self.base_url,
                     api_key=self.api_key,
                 )
             except Exception as e:
-                print(f"Failed to initialize OpenAI client: {e}")
+                print(f"Failed to initialize OpenRouter client: {e}")
 
     def generate_seo_keywords(self, trend: str, suggestions: List[str]) -> List[str]:
         """
@@ -212,7 +213,7 @@ Example: [{{"title": "...", "description": "..."}}]
                 content = content[4:]
         return content.strip()
 
-    def expand_keywords_with_ai(self, items: list, niche: str = "") -> list:
+    def expand_keywords_with_ai(self, items: list, niche: str = "", count: int = 10) -> list:
         """
         Use LLM to intelligently combine base keywords with suggestions.
         Input `items` should be a list of dicts: [{'keyword': 'base_kw', 'suggestions': ['s1', 's2']}]
@@ -225,7 +226,7 @@ Example: [{{"title": "...", "description": "..."}}]
                 base = item['keyword']
                 sugs = item.get('suggestions', [])
                 results.append({'keyword': base, 'base': base, 'intent': 'informational', 'score': 80})
-                for s in sugs[:5]:
+                for s in sugs[:min(len(sugs), count)]:
                      results.append({
                         'keyword': f"{base} {s}".lower(),
                         'base': base,
@@ -237,7 +238,7 @@ Example: [{{"title": "...", "description": "..."}}]
         try:
             # Construct a structured prompt
             prompt_parts = [
-                f"You are a Pinterest SEO expert. I have {len(items)} distinct topic groups. For EACH group, generate 5-8 specific long-tail search phrases that users search for on Pinterest.",
+                f"You are a Pinterest SEO expert. I have {len(items)} distinct topic groups. For EACH group, generate {count} specific long-tail search phrases that users search for on Pinterest.",
                 f"NICHE: {niche or 'general'}",
                 "\n--- GROUPS ---"
             ]
