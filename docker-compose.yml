@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: pintrends-web
+    command: gunicorn pintrends_project.wsgi:application --bind 0.0.0.0:8080
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - DEBUG=False
+      - ALLOWED_HOSTS=198.251.79.138,localhost
+    restart: always
+
+volumes:
+  static_volume:
+  media_volume:
+
+networks:
+  default:
+    name: pintrends-network
