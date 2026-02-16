@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: pintrends
+    env: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn pintrends_project.wsgi:application
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pintrends-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "pintrends.onrender.com"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TOGETHER_API_KEY
+        sync: false
+      - key: FAL_KEY
+        sync: false
+
+databases:
+  - name: pintrends-db
+    plan: free

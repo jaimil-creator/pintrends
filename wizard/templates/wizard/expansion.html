@@ -12,7 +12,7 @@
         </div>
         <div class="flex items-center gap-4">
             <form hx-get="{% url 'wizard:expand_keywords_htmx' project.id %}" hx-target="#expansion-container"
-                hx-swap="innerHTML" hx-indicator="#loading-spinner" class="flex items-center gap-2">
+                hx-swap="innerHTML" hx-indicator="#loading-overlay" class="flex items-center gap-2">
                 <div class="flex items-center bg-gray-100 rounded-full px-4 py-2 border border-gray-200">
                     <span class="text-sm font-semibold text-gray-500 mr-2">Count:</span>
                     <input type="number" name="count" value="10" min="1" max="20"
@@ -57,13 +57,54 @@
         </div>
     </div>
 
-    <!-- Loading -->
-    <div id="loading-spinner" class="htmx-indicator w-full text-center py-20">
-        <div class="inline-flex items-center justify-center animate-spin">
-            <div class="w-12 h-12 border-4 border-gray-200 border-t-pinterest-red rounded-full"></div>
+    <!-- Full Page Loading Overlay -->
+    <div id="loading-overlay"
+        class="htmx-indicator fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+        <div class="flex flex-col items-center">
+            <div class="relative w-24 h-24 mb-6">
+                <div class="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-t-pinterest-red rounded-full animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="bi bi-stars text-4xl text-pinterest-red"></i>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">AI Keyword Expansion</h2>
+            <p class="text-gray-500 font-medium">Mixing and matching keywords for the best reach...</p>
+
+            <!-- Progress bar simulation -->
+            <div class="w-64 h-1.5 bg-gray-100 rounded-full mt-6 overflow-hidden">
+                <div class="h-full bg-pinterest-red rounded-full animate-[loading-bar_10s_ease-in-out_infinite]"></div>
+            </div>
         </div>
-        <p class="mt-4 text-gray-500 font-bold text-lg">AI is mixing and matching...</p>
     </div>
+
+    <style>
+        @keyframes loading-bar {
+            0% {
+                width: 0%;
+            }
+
+            50% {
+                width: 70%;
+            }
+
+            100% {
+                width: 100%;
+            }
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: flex !important;
+        }
+
+        .htmx-request.htmx-indicator {
+            display: flex !important;
+        }
+    </style>
 
     <!-- Results -->
     <div id="expansion-container">
