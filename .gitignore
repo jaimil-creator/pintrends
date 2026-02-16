@@ -53,3 +53,4 @@ Thumbs.db
 # Project specific
 *.csv
 *.xlsx
+blog_exports/
