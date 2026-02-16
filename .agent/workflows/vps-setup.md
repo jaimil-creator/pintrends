@@ -44,6 +44,21 @@ docker-compose up --build -d
 The app is now running on port **8080**. You can access it at:
 `http://198.251.79.138:8080`
 
+### How to change your Pinterest Login
+If you need to update the Pinterest account used for scraping:
+
+1.  **Run locally**: On your **own computer** (not the VPS), make sure you have Playwright installed, then run the helper script:
+    ```bash
+    python generate_auth.py
+    ```
+2.  **Log in**: A browser will open. Log in to the Pinterest account you want to use.
+3.  **Save**: Go back to your terminal and press **ENTER**. This will generate a new `auth.json` file.
+4.  **Upload**: Upload this new `auth.json` to the `pintrends` folder on your VPS (overwriting the old one).
+5.  **Restart**: Restart your Docker containers to apply the new session:
+    ```bash
+    docker-compose restart web
+    ```
+
 ---
 
 ### Why this is safe for your VPS:
