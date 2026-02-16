@@ -1,137 +1,86 @@
 # 📌 PinTrends
 
-A powerful Pinterest trend analysis and content generation tool built with Django. Automatically discover trending keywords, generate optimized article titles and pin descriptions using AI, and export your content strategy.
+A high-performance Pinterest trend analysis and content automation ecosystem built with Django. PinTrends empowers content creators to discover high-velocity trends, expand keyword strategies with AI, and generate complete, image-rich blog posts and pins in seconds.
 
 ## ✨ Features
 
-### 🔍 Trend Discovery
-- **Pinterest Trends Integration**: Scrape trending keywords by interest, demographic, and location
-- **Smart Filtering**: Filter by age groups, gender, and specific interests
-- **Keyword Review**: Select and manage trending keywords for your niche
+### 🔍 Intelligence & Discovery
+- **Stealth Trend Scraping**: Deep integration with Pinterest Trends using headless Playwright browsers for background data mining.
+- **Advanced Filtering**: Narrow down trends by country, interest, age group, and gender.
+- **Predictive Analytics**: Interactive charts showing trend trajectories with confidence bounds to spot "breakout" niches.
 
-### 🤖 AI Content Generation
-- **Article Title Generation**: Create engaging, SEO-optimized article titles
-- **Pin Description Writing**: Generate compelling pin descriptions
-- **Keyword Expansion**: AI-powered keyword expansion for broader reach
-- **Inline Editing**: Edit generated content with beautiful modal popups
+### 🤖 AI Content Engine
+- **Full Blog Generation**: Creates complete blog posts including intro, conclusion, and structured sections using Gemini 1.5 Pro.
+- **Multi-Model Image Pipeline**:
+    - **Together AI (Qwen)**: Generates highly descriptive, aesthetic-focused image prompts.
+    - **Fal AI (Nano-Banana)**: High-speed, high-quality fashion and lifestyle image generation.
+- **Keyword Expansion**: Transforms seed keywords into high-intent long-tail clusters.
 
-### 📊 Project Management
-- **Dashboard**: Visual overview of all your projects
-- **Project Search**: Quickly find projects by name or niche
-- **Progress Tracking**: Track your workflow stage for each project
-- **Resume Work**: Intelligent navigation to continue where you left off
+### 🖼️ Image Management
+- **Pin Image Studio**: Specialized vertical image generation optimized for Pinterest's 2:3 aspect ratio.
+- **Custom Image Support**: Upload your own assets or regenerate AI images for specific sections.
+- **Batch Export**: Download all blog images in a single optimized ZIP file with one click.
 
-### 📤 Export Options
-- **CSV Export**: Download your content in spreadsheet format
-- **JSON Export**: Export structured data for integrations
+### 📊 Project Workflow
+- **Workflow Sidebar**: Real-time progress tracking through the project lifecycle (Trends → Suggestions → Expansion → Content → Blog).
+- **Intelligent Resumption**: Smart dashboard allows you to jump back into any project exactly where you left off.
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Django 5.x
-- **Database**: PostgreSQL (Supabase)
-- **Frontend**: HTML, JavaScript, Tailwind CSS
-- **Icons**: Bootstrap Icons
-- **HTMX**: Dynamic content loading
-- **AI**: OpenAI GPT integration
+- **Backend**: Django 5.1 (Python 3.12)
+- **Scraping**: Playwright (Headless Chromium)
+- **AI Core**: 
+  - **Content**: Google Gemini 1.5 Pro / Flash
+  - **Prompts**: Together AI (Qwen-2 72B)
+  - **Images**: Fal AI (FLUX / Nano-Banana)
+- **Frontend**: HTMX (Dynamic SPA feel), Tailwind CSS, Bootstrap Icons
+- **Data Flow**: `requests` with connection pooling, `ThreadPoolExecutor` for parallel image processing.
 
 ## 📦 Installation
 
 ### Prerequisites
-- Python 3.8+
-- PostgreSQL database (or Supabase account)
-- OpenAI API key
+- Python 3.12+
+- Playwright browsers installed (`playwright install chromium`)
+- API Keys: Gemini, Together AI, Fal AI
 
 ### Setup
 
-1. **Clone the repository**
+1. **Clone & Environment**
    ```bash
    git clone https://github.com/jaimil-creator/pintrends.git
    cd pintrends
-   ```
-
-2. **Create virtual environment**
-   ```bash
    python -m venv .venv
-   .venv\Scripts\activate  # Windows
-   source .venv/bin/activate  # Mac/Linux
-   ```
-
-3. **Install dependencies**
-   ```bash
+   .venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-4. **Configure environment variables**
-   
+2. **Environment Configuration**
    Create a `.env` file in the project root:
    ```env
-   DATABASE_URL=your_supabase_connection_string
-   OPENAI_API_KEY=your_openai_api_key
-   SECRET_KEY=your_django_secret_key
+   SECRET_KEY=...
    DEBUG=True
+   DATABASE_URL=...
+   GEMINI_API_KEY=...
+   TOGETHER_API_KEY=...
+   FAL_KEY=...
    ```
 
-5. **Run migrations**
+3. **Initialize Database**
    ```bash
    python manage.py migrate
    ```
 
-6. **Start the development server**
+4. **Launch**
    ```bash
    python manage.py runserver
    ```
 
-7. **Access the app**
-   
-   Navigate to `http://127.0.0.1:8000/`
+## 🚀 The PinTrends Workflow
 
-## 🚀 Usage
-
-### Workflow
-
-1. **Create a Project**
-   - Click "New Project" from the dashboard
-   - Enter project name and niche
-
-2. **Fetch Trends**
-   - Select interests and demographics
-   - Click "Scrape Trends" to fetch Pinterest keywords
-   - Review and select relevant trends
-
-3. **Get AI Suggestions**
-   - Generate keyword variations using AI
-   - Review suggestions and select the best ones
-
-4. **Expand Keywords**
-   - AI expands your keywords into long-tail variations
-   - Select keywords for content generation
-
-5. **Generate Content**
-   - Set article and pin counts
-   - Click "Generate All Content"
-   - Edit any generated content inline
-
-6. **Export**
-   - Download as CSV or JSON
-   - Use in your content strategy
-
-## 📸 Screenshots
-
-### Dashboard
-Clean project overview with search functionality
-
-### Content Generation
-AI-powered content creation with inline editing
-
-### Trend Analysis
-Visual trend data with demographic filters
-
-## 🔐 Security
-
-- Environment variables for sensitive data
-- CSRF protection enabled
-- Database credentials stored securely
-- `.gitignore` configured to exclude sensitive files
+1. **Discovery**: Scrape Pinterest for seasonal or breakout trends.
+2. **Refinement**: Mine suggestions and expand keywords to build a niche-specific clusters.
+3. **Generation**: Click one button to generate a complete blog post with AI images.
+4. **Export**: Serve the content via JSON API or download the images for manual posting.
 
 ## 🤝 Contributing
 
@@ -141,17 +90,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is private and proprietary.
 
-## 👤 Author
-
-**Jaimil**
-- GitHub: [@jaimil-creator](https://github.com/jaimil-creator)
-
-## 🙏 Acknowledgments
-
-- Pinterest for trend data
-- OpenAI for content generation
-- Django community for the amazing framework
-
 ---
-
 Made with ❤️ for Pinterest content creators
