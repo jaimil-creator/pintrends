@@ -234,7 +234,7 @@ def delete_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     project.delete()
     messages.success(request, f"Project '{project.name}' deleted successfully.")
-    return redirect('wizard:project_list')
+    return redirect('wizard:dashboard')
 
 # ============= STEP 0: Create Project =============
 class ProjectCreateView(CreateView):

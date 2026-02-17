@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Project(models.Model):
     name = models.CharField(max_length=200)
@@ -228,3 +229,75 @@ class BlogSection(models.Model):
     
     def __str__(self):
         return f"{self.order}. {self.title}"
+
+# --- NEW MODELS FOR ENHANCED ARCHITECTURE ---
+
+class PinterestAccount(models.Model):
+    """Stores credentials and session state for Pinterest accounts."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pinterest_accounts')
+    email = models.EmailField(unique=True)
+    username = models.CharField(max_length=100, blank=True)
+    auth_state = models.JSONField(default=dict, help_text="Stores Playwright storage state (cookies/localStorage)")
+    is_active = models.BooleanField(default=True)
+    last_login = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+class PinterestBoard(models.Model):
+    """Stores boards associated with a Pinterest account."""
+    account = models.ForeignKey(PinterestAccount, on_delete=models.CASCADE, related_name='boards')
+    board_id = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
+    url = models.URLField(max_length=500, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.account.email})"
+
+class MediaAsset(models.Model):
+    """Centralized storage for AI generated and uploaded images."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='media_assets')
+    image_file = models.ImageField(upload_to='media_assets/%Y/%m/%d/', blank=True, null=True)
+    remote_url = models.URLField(max_length=1024, blank=True)
+    prompt = models.TextField(blank=True)
+    source = models.CharField(
+        max_length=50, 
+        choices=[
+            ('fal-ai', 'Fal AI'),
+            ('together-ai', 'Together AI'),
+            ('gemini', 'Gemini'),
+            ('upload', 'Manual Upload'),
+            ('external', 'External URL')
+        ],
+        default='external'
+    )
+    is_vertical = models.BooleanField(default=True, help_text="True for Pins, False for Blogs")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Asset {self.id} ({self.source})"
+
+class AutomationLog(models.Model):
+    """Logs for tracking automation steps, successes, and failures."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='logs')
+    action = models.CharField(max_length=100) # e.g., 'scrape_trends', 'post_pin'
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('success', 'Success'),
+            ('warning', 'Warning'),
+            ('error', 'Error'),
+            ('info', 'Info')
+        ],
+        default='info'
+    )
+    message = models.TextField()
+    payload = models.JSONField(default=dict, blank=True, help_text="Debug data or API responses")
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"[{self.status.upper()}] {self.action} at {self.timestamp}"

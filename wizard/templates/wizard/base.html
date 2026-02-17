@@ -167,17 +167,7 @@
     <!-- Spacer for fixed navbar -->
     <div class="h-24"></div>
 
-    {% if messages %}
-    <div class="max-w-2xl mx-auto px-4 mb-6">
-        {% for message in messages %}
-        <div class="p-4 mb-2 rounded-2xl bg-gray-100 border-l-4 border-pinterest-red flex items-start shadow-sm">
-            <div class="flex-1 text-sm font-medium">{{ message }}</div>
-            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-900"><i
-                    class="bi bi-x-lg"></i></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+    {% include 'wizard/partials/toast_messages.html' %}
 
     <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         {% block content %}
@@ -188,7 +178,7 @@
     <div id="modal-container"></div>
 
     <!-- Toast Notification Container -->
-    <div id="toast-notification"></div>
+    <div id="toast-container"></div>
 
     <script>
         // Modal Body Scroll Lock

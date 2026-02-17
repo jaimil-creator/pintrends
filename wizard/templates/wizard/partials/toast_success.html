@@ -1,5 +1,4 @@
-<div id="toast-notification"
-    class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 ease-in-out translate-y-0 opacity-100"
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none"
     hx-swap-oob="true">
     <div
         class="bg-white border-l-4 border-green-500 rounded-r-xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px] animate-slideIn">
@@ -19,7 +18,7 @@
     <script>
         // Auto-dismiss after 5 seconds
         setTimeout(function () {
-            const toast = document.getElementById('toast-notification');
+            const toast = document.getElementById('toast-container');
             if (toast) {
                 toast.classList.add('translate-y-full', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);

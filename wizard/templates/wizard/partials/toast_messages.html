@@ -1,0 +1,77 @@
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none"
+    hx-swap-oob="true">
+    {% for message in messages %}
+    <div class="toast-item bg-white border-l-4 rounded-r-xl shadow-2xl p-4 flex items-center gap-3 min-w-[320px] pointer-events-auto transform transition-all duration-300 ease-in-out translate-y-2 opacity-0 animate-toast-in
+        {% if message.tags == 'success' %}border-green-500
+        {% elif message.tags == 'error' %}border-red-500
+        {% elif message.tags == 'warning' %}border-yellow-500
+        {% else %}border-blue-500{% endif %}">
+
+        <div class="{% if message.tags == 'success' %}bg-green-100 text-green-600
+                    {% elif message.tags == 'error' %}bg-red-100 text-red-600
+                    {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-600
+                    {% else %}bg-blue-100 text-blue-600{% endif %} rounded-full p-2">
+            {% if message.tags == 'success' %}<i class="bi bi-check-lg text-xl"></i>
+            {% elif message.tags == 'error' %}<i class="bi bi-exclamation-circle text-xl"></i>
+            {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle text-xl"></i>
+            {% else %}<i class="bi bi-info-circle text-xl"></i>{% endif %}
+        </div>
+
+        <div class="flex-1">
+            <h4 class="font-bold text-gray-900 text-sm">
+                {% if message.tags == 'success' %}Success
+                {% elif message.tags == 'error' %}Error
+                {% elif message.tags == 'warning' %}Warning
+                {% else %}Notice{% endif %}
+            </h4>
+            <p class="text-xs text-gray-500">{{ message }}</p>
+        </div>
+
+        <button onclick="dismissToast(this.closest('.toast-item'))"
+            class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <script>
+            {
+                let toast = document.currentScript.parentElement;
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-2', 'opacity-0');
+                }, 10);
+
+                setTimeout(() => {
+                    dismissToast(toast);
+                }, 5000);
+            }
+        </script>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    @keyframes toast-in {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .animate-toast-in {
+        animation: toast-in 0.3s ease-out forwards;
+    }
+</style>
+
+<script>
+    if (typeof dismissToast !== 'function') {
+        function dismissToast(element) {
+            if (!element) return;
+            element.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => element.remove(), 300);
+        }
+    }
+</script>
