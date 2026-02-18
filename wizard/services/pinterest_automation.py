@@ -312,16 +312,26 @@ class PinterestAutomationService:
                             # Sometimes the section is collapsed or needs a click to appear? Usually visible.
                             if tag_input.count() > 0:
                                 tag_input_el = tag_input.first
+                                tag_input_el.click()
+                                time.sleep(0.5)
                                 
                                 for tag in tag_list:
                                     if not tag: continue
-                                    tag_input_el.click()
-                                    tag_input_el.fill(tag)
-                                    time.sleep(1.5) # Wait for suggestions
-                                    
-                                    # Press enter to select first suggestion
-                                    tag_input_el.press('Enter')
-                                    time.sleep(0.5)
+                                    try:
+                                        print(f"   - Typing tag: {tag}")
+                                        tag_input_el.fill(tag)
+                                        time.sleep(2.0) # Wait for suggestions to populate
+                                        
+                                        # Press enter to select first suggestion
+                                        tag_input_el.press('Enter')
+                                        time.sleep(1.0) # Wait for chip to be created
+                                        
+                                        # Optional: Verify chip creation if possible, but strict wait is usually enough
+                                    except Exception as e:
+                                        print(f"   - Error adding tag '{tag}': {e}")
+                                
+                                # Ensure we click out or wait a moment before proceeding
+                                time.sleep(1)
                             else:
                                 print("⚠️ Tagged topics input not found")
                         except Exception as e:
@@ -333,43 +343,74 @@ class PinterestAutomationService:
                 publish_btn = page.locator('[data-test-id="board-dropdown-save-button"], button:has-text("Publish"), button:has-text("Save"), button:has-text("Schedule"), [aria-label="Schedule"]')
                 if publish_btn.count() > 0:
                     publish_btn.first.click()
-                    time.sleep(2)
                     
-                    # Handle Scheduling Confirmation Popup (Cancel / Schedule)
-                    try:
-                        # User says "during the scheduling one confermation popup comes with cencle, schedule"
-                        # Look for a visible "Schedule" button, possibly in a dialog
-                        confirm_btn = page.locator('button:has-text("Schedule")').last
-                        if confirm_btn.is_visible():
-                             print("🔔 Handling confirmation popup...")
-                             confirm_btn.click()
-                             time.sleep(2)
-                    except Exception as e:
-                        print(f"ℹ️ Confirmation check skipped: {e}")
+                    # Logic for Scheduling Confirmation
+                    if schedule_date and schedule_time:
+                        print("🔔 Check for scheduling confirmation...")
+                        # We need to wait for EITHER the success message OR the confirmation popup.
+                        # If we see the popup, we must click it.
+                        
+                        try:
+                            # Wait for a "Schedule" button in a dialog OR the success message
+                            # This hybrid approach handles cases where popup is skipped
+                            for _ in range(10): # Try for 10 seconds approx
+                                time.sleep(1)
+                                
+                                # 1. Check for Success Message first (fast path)
+                                if page.locator('text="Scheduled for"').is_visible():
+                                    print("✅ Correctly scheduled (no popup needed).")
+                                    break
+                                
+                                # 2. Check for Confirmation Popup
+                                confirm_btn = page.locator('div[role="dialog"] button:has-text("Schedule"), div[role="dialog"] [aria-label="Schedule"]')
+                                if confirm_btn.is_visible():
+                                    print("🔔 Confirmation popup detected. Clicking Schedule...")
+                                    confirm_btn.first.click()
+                                    time.sleep(1) # Give it a moment to process click
+                                    # Now loop will continue and check for success message next iteration
+                        except Exception as e:
+                            print(f"ℹ️ Error in confirmation loop: {e}")
 
-
-                    # Wait for the action to complete
-                    print("⏳ Waiting for confirmation...")
-                    try:
-                        if schedule_date and schedule_time:
-                            # For scheduled posts, wait for specific "Scheduled for" text
-                            page.wait_for_selector('text="Scheduled for"', timeout=30000)
-                            print("✅ Success message 'Scheduled for...' detected!")
-                            time.sleep(3)
-                        else:
-                            # For immediate posts, just wait for "Saved" or URL change
-                            # Pinterest often shows "Saved to [Board Name]"
+                        # Final strict check for success
+                        print("⏳ Verifying final schedule success...")
+                        try:
+                            # User requested 35 second strict wait
+                            page.wait_for_selector('text="Scheduled for"', timeout=35000)
+                            print("✅ Success message 'Scheduled for...' confirmed!")
+                            time.sleep(2) # Visual confirmation for user
+                        except:
+                            print("❌ 'Scheduled for' message NOT detected.")
+                            
+                            # Fallback: Check if draft is gone
+                            print("🕵️ Running fallback verification: Checking if draft was removed...")
                             try:
-                                page.wait_for_selector('text="Saved to"', timeout=10000)
-                                print("✅ Success message 'Saved to...' detected!")
-                            except:
-                                print("ℹ️ 'Saved to' message not detected, but assuming success.")
-                            time.sleep(3)
+                                # Navigate back to pin creation tool (drafts list)
+                                page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded")
+                                time.sleep(4)
+                                
+                                # Check if a draft with this title exists
+                                # Selector for draft titles in the list
+                                draft_selector = f'div[role="button"]:has-text("{title[:20]}")' 
+                                if page.locator(draft_selector).count() == 0:
+                                    print("✅ Fallback: Draft not found! Assuming it was scheduled successfully.")
+                                else:
+                                    print("❌ Fallback: Draft still exists. Scheduling failed.")
+                                    page.screenshot(path="debug_schedule_fail_draft_exists.png")
+                                    raise Exception("Scheduling failed - Draft still exists.")
+                                    
+                            except Exception as e:
+                                print(f"⚠️ Fallback verification failed: {e}")
+                                raise Exception("Scheduling failed and fallback check failed.")
 
-                    except Exception as e:
-                        print(f"⚠️ Success confirmation not detected within timeout: {e}")
-                        # Fallback sleep
-                        time.sleep(3)
+                    else:
+                        # Immediate Post Logic (simpler)
+                        print("⏳ Waiting for immediate post success...")
+                        try:
+                            page.wait_for_selector('text="Saved to"', timeout=15000)
+                            print("✅ Success message 'Saved to...' detected!")
+                            time.sleep(2)
+                        except:
+                            print("⚠️ 'Saved to' not detected. Assuming success if no error dialogs.")
 
                     print("✅ Pin published/scheduled successfully!")
                 else:

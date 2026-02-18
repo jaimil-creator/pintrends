@@ -619,8 +619,42 @@ PINTEREST_PASSWORD=your_password</pre>
                     if (data.results && data.results.length > 0) {
                         let msg = isScheduling ? `Successfully scheduled ${data.posted} pins on Pinterest.` : `Successfully published ${data.posted} pins.`;
                         showToast(msg, 'success');
+
+                        // Dynamically update UI for each result without reloading
+                        data.results.forEach(result => {
+                            if (result.status === 'success') {
+                                const card = document.querySelector(`[data-pin-id="${result.id}"]`);
+                                const checkbox = card ? card.querySelector('.pin-checkbox') : null;
+
+                                if (card && checkbox) {
+                                    // 1. Deselect (updates UI) if it was selected
+                                    if (checkbox.checked) {
+                                        // We manually trigger the toggle to unselect it
+                                        togglePinSelection(card, result.id);
+                                    }
+
+                                    // 2. Update Status Badge
+                                    const badgeContainer = card.querySelector('.flex.items-center.gap-2.shrink-0.mb-2');
+                                    if (badgeContainer) {
+                                        let newBadgeHtml = '';
+                                        if (isScheduling) {
+                                            newBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-600 text-xs font-semibold rounded-full"><i class="bi bi-calendar-check text-[10px]"></i> Scheduled</span>`;
+                                        } else {
+                                            newBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full"><i class="bi bi-check-circle-fill text-[10px]"></i> Posted</span>`;
+                                        }
+                                        badgeContainer.innerHTML = newBadgeHtml;
+                                    }
+
+                                    // 3. Mark as "done" visually
+                                    card.classList.add('opacity-60'); // Dim the card to indicate completion
+                                }
+                            }
+                        });
+
+                        // Re-enable/disable buttons based on remaining selection
+                        updateSelection();
                     }
-                    setTimeout(() => location.reload(), 2000);
+                    // Page reload removed to preserve settings
                 } else {
                     showToast('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
