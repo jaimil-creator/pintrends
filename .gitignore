@@ -54,3 +54,5 @@ Thumbs.db
 *.csv
 *.xlsx
 blog_exports/
+auth.json
+*.png

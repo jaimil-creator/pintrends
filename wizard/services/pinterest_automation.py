@@ -259,38 +259,193 @@ class PinterestAutomationService:
                 
                 # Native Scheduling
                 if schedule_date and schedule_time:
+                    # TIME BUMPER: Check if time is too close/past and bump it
+                    try:
+                        from datetime import datetime, timedelta
+                        
+                        # Parse inputs (schedule_date is YYYY-MM-DD, schedule_time is HH:MM AM/PM)
+                        dt_str = f"{schedule_date} {schedule_time}"
+                        target_dt = datetime.strptime(dt_str, "%Y-%m-%d %I:%M %p")
+                        now = datetime.now()
+                        
+                        # If target is in past or within 20 mins
+                        if target_dt < now + timedelta(minutes=20):
+                            print(f"⚠️ Scheduled time {schedule_time} is too close or in past. Bumping...")
+                            
+                            # Start from now + 25 mins to be safe
+                            safe_start = now + timedelta(minutes=25)
+                            
+                            # Round up to next 30 min slot
+                            # e.g. 10:12 -> 10:30, 10:40 -> 11:00
+                            next_slot = safe_start + (datetime.min - safe_start) % timedelta(minutes=30)
+                            
+                            # If next_slot is somehow earlier than safe_start (shouldn't happen with math above but safe check)
+                            if next_slot < safe_start:
+                                next_slot += timedelta(minutes=30)
+                            
+                            # Formats
+                            new_date = next_slot.strftime("%Y-%m-%d")
+                            new_time = next_slot.strftime("%I:%M %p").lstrip("0").replace(" 0", " ")
+                            
+                            print(f"🔄 Adjusted schedule to: {new_date} at {new_time}")
+                            schedule_date = new_date
+                            schedule_time = new_time
+                            
+                    except Exception as e:
+                        print(f"⚠️ Time adjustment failed: {e}")
+                        # Fallback to original
+                        pass
+                    
+                    # Clean time format for better matching (1:00 PM vs 01:00 PM)
+                    # Pinterest often uses 1:00 PM, 2:00 PM (no leading zero)
+                    if schedule_time:
+                         schedule_time = schedule_time.lstrip("0")
+
                     print(f"📅 Scheduling for {schedule_date} at {schedule_time}")
                     try:
                         # 1. Click "Publish at a later date" radio/toggle
-                        # Look for the radio button or label associated with it
-                        schedule_radio = page.locator('input[type="radio"][name="publish-date"], label:has-text("Publish at a later date")')
+                        # Use multiple strategies to find the scheduling option
+                        schedule_radio = page.locator('input[type="radio"][name="publish-date"], label:has-text("Publish at a later date"), label:has-text("Schedule"), div[data-test-id*="schedule-radio"], div[role="radio"]:has-text("Publish at a later date")')
+                        
                         if schedule_radio.count() > 0:
-                            schedule_radio.first.click()
+                            print("   - Found scheduling option, clicking...")
+                            # Try to click the label or container if it's a complex component
+                            try:
+                                schedule_radio.first.scroll_into_view_if_needed()
+                                schedule_radio.first.click(force=True)
+                            except:
+                                # Fallback: try Javascript click
+                                try:
+                                    page.evaluate("el => el.click()", schedule_radio.first.element_handle())
+                                except Exception as e:
+                                    print(f"   - JS click failed: {e}")
+                            
                             time.sleep(1)
                             
+                            # VERIFY: Check if date input appeared. If not, scheduling mode is NOT active.
+                            if page.locator('input[id*="date"], input[name="date"], [aria-label*="Choose a date"]').count() == 0:
+                                print("❌ Error: 'Publish at a later date' clicked but Date input did not appear.")
+                                page.screenshot(path="debug_schedule_activation_failed.png")
+                                raise Exception("Failed to activate scheduling mode (Date input missing). Aborting to prevent immediate post.")
+                        else:
+                            print("❌ Error: 'Publish at a later date' option NOT found.")
+                            page.screenshot(path="debug_schedule_radio_missing.png")
+                            raise Exception("Scheduling option not found on page. Aborting.")
+                            
                             # 2. Fill Date
-                            # Usually input[type="date"] or similar. Pinterest might use a custom picker, 
-                            # but often filling the input works if it's reachable.
-                            # Based on screenshot, it looks like a standard input field.
                             date_input = page.locator('input[id*="date"], input[name="date"], [aria-label*="Choose a date"]')
                             if date_input.count() > 0:
                                 date_input.first.click()
-                                date_input.first.fill(schedule_date) # Expecting MM/DD/YYYY? or YYYY-MM-DD? User said MM/DD/YYYY
+                                time.sleep(0.5)
+                                # Clear existing value if possible (Ctrl+A, Delete) to be safe
+                                date_input.first.press("Control+a")
+                                date_input.first.press("Backspace")
+                                
+                                # Check input type to decide format
+                                input_type = date_input.first.get_attribute("type")
+                                if input_type == "date":
+                                    # HTML5 date input expects YYYY-MM-DD usually
+                                    # But sometimes locale matters. Let's try standard YYYY-MM-DD first.
+                                    # If schedule_date is already YYYY-MM-DD, perfect.
+                                    date_input.first.fill(schedule_date)
+                                else:
+                                    # Text input, likely Pinterest custom picker.
+                                    # Usually expects MM/DD/YYYY or similar based on locale.
+                                    # If we got YYYY-MM-DD from frontend, we might need to convert here.
+                                    formatted_date = schedule_date
+                                    if '-' in schedule_date:
+                                        parts = schedule_date.split('-')
+                                        if len(parts) == 3: # YYYY-MM-DD
+                                            formatted_date = f"{parts[1]}/{parts[2]}/{parts[0]}"
+                                    
+                                    date_input.first.fill(formatted_date)
+                                
                                 date_input.first.press("Enter")
                                 time.sleep(1)
+                                
+                                # VERIFY DATE
+                                try:
+                                    actual_val = date_input.first.input_value()
+                                    print(f"   - Date input value after fill: '{actual_val}' (Expected: '{schedule_date}' or close match)")
+                                    
+                                    # Basic check: if we wanted 2026-02-19 and got 2026-02-20, that's the error.
+                                    # If mismatch, try forcing it via JS or typing manually
+                                    if schedule_date not in actual_val and actual_val != schedule_date:
+                                        normalized_actual = actual_val.replace('/', '-')
+                                        normalized_expected = schedule_date.replace('/', '-')
+                                        # Simple heuristic check
+                                        if normalized_actual != normalized_expected:
+                                             print("⚠️ Date mismatch detected! Retrying with manual typing...")
+                                             date_input.first.click()
+                                             date_input.first.press("Control+a")
+                                             date_input.first.press("Backspace")
+                                             
+                                             # Determine correct format for typing
+                                             type_value = schedule_date
+                                             # If text input, likely needs MM/DD/YYYY
+                                             if date_input.first.get_attribute("type") != "date":
+                                                 if '-' in schedule_date:
+                                                     parts = schedule_date.split('-')
+                                                     if len(parts) == 3:
+                                                         type_value = f"{parts[1]}/{parts[2]}/{parts[0]}"
+                                             
+                                             # Try typing char by char
+                                             print(f"   - Typing manually: {type_value}")
+                                             date_input.first.type(type_value, delay=100)
+                                             date_input.first.press("Enter")
+                                             time.sleep(1)
+                                             print(f"   - Retry value: '{date_input.first.input_value()}'")
+                                except Exception as e:
+                                    print(f"⚠️ Could not verify date input: {e}")
+
                             else:
                                 print("⚠️ Date input not found")
 
                             # 3. Fill Time
-                            # Based on screenshot, it's a dropdown or input.
                             time_input = page.locator('input[id*="time"], input[name="time"], [aria-label*="Choose a time"]')
                             if time_input.count() > 0:
                                 time_input.first.click()
                                 time.sleep(0.5)
-                                # Start typing the time to filter/select
+                                
+                                # Clear and type
+                                time_input.first.press("Control+a")
+                                time_input.first.press("Backspace")
                                 time_input.first.fill(schedule_time)
-                                time.sleep(0.5)
-                                time_input.first.press("Enter")
+                                time.sleep(1.0) # Wait for dropdown to filter
+                                
+                                # Select the EXACT option from dropdown to avoid 12:00 AM/PM mixup
+                                # Pinterest dropdown usually shows the time text.
+                                # specific strategy: Look for option with exact text match
+                                try:
+                                    # Helper to find option in dropdown
+                                    # We look for a container closer to the input usually
+                                    # SEARCH for the stripped time (e.g. "12:30 PM")
+                                    # AND also try one with leading zero just in case
+                                    
+                                    target_times = [schedule_time]
+                                    # If "1:30 PM", add "01:30 PM"
+                                    # If "01:00 PM" (already stripped, so won't happen), but let's be safe
+                                    parts = schedule_time.split(':')
+                                    if len(parts) == 2 and len(parts[0]) == 1:
+                                        target_times.append(f"0{schedule_time}")
+                                    
+                                    option_found = False
+                                    for t_str in target_times:
+                                        # Look for exact text match in options
+                                        option = page.locator(f'div[role="option"] div:has-text("{t_str}"), div[data-test-id*="time-item"] div:has-text("{t_str}"), div[role="option"]:has-text("{t_str}")').first
+                                        if option.count() > 0 and option.is_visible():
+                                            print(f"   - Found time option '{t_str}', clicking...")
+                                            option.click()
+                                            option_found = True
+                                            break
+                                    
+                                    if not option_found:
+                                        # Fallback to Enter if specific option not found
+                                        print(f"⚠️ Exact time option '{schedule_time}' not found in dropdown, pressing Enter on input.")
+                                        time_input.first.press("Enter")
+                                except:
+                                    time_input.first.press("Enter")
+                                    
                                 time.sleep(1)
                             else:
                                 print(f"⚠️ Time input not found for {schedule_time}")

@@ -1,0 +1,31 @@
+{% if keywords %}
+<div class="grid grid-cols-1 gap-2">
+    {% for keyword in keywords %}
+    <button hx-get="{% url 'wizard:analysis_fetch' %}?keyword={{ keyword.keyword|urlencode }}"
+        hx-target="#analysis-results" hx-indicator="#loading-indicator"
+        class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 transition-all group flex items-center justify-between"
+        onclick="setActiveKeyword(this)">
+        <span class="font-medium text-gray-700 group-hover:text-gray-900">{{ keyword.keyword }}</span>
+        <i
+            class="bi bi-chevron-right text-gray-400 group-hover:text-pinterest-red opacity-0 group-hover:opacity-100 transition-all"></i>
+    </button>
+    {% endfor %}
+</div>
+<script>
+    function setActiveKeyword(element) {
+        // Remove active class from all buttons
+        document.querySelectorAll('#keyword-list button').forEach(btn => {
+            btn.classList.remove('bg-white', 'shadow-md', 'border-gray-200', 'ring-2', 'ring-pinterest-red', 'ring-opacity-50');
+            btn.classList.add('bg-gray-50', 'border-transparent');
+        });
+
+        // Add active class to clicked button
+        element.classList.remove('bg-gray-50', 'border-transparent');
+        element.classList.add('bg-white', 'shadow-md', 'border-gray-200', 'ring-2', 'ring-pinterest-red', 'ring-opacity-50');
+    }
+</script>
+{% else %}
+<div class="text-center py-8 text-gray-500">
+    <p>No selected keywords found for this project.</p>
+</div>
+{% endif %}

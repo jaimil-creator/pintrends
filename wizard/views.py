@@ -834,7 +834,8 @@ class AnalysisView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # context['active_sidebar'] = 'analysis' # No sidebar for this page yet
+        from .models import Project
+        context['projects'] = Project.objects.all().order_by('-created_at')
         return context
 
 def fetch_analysis_data(request):
@@ -936,6 +937,17 @@ def fetch_analysis_data(request):
         })
     except Exception as e:
         return render(request, 'wizard/partials/analysis_results_v2.html', {'error': f'Error processing data: {str(e)}'})
+
+def project_keywords_htmx(request):
+    """HTMX endpoint to fetch keywords for a selected project."""
+    project_id = request.GET.get('project')
+    if not project_id:
+        return HttpResponse('')
+    
+    from .models import TrendKeyword
+    keywords = TrendKeyword.objects.filter(project_id=project_id)
+    
+    return render(request, 'wizard/partials/project_keywords.html', {'keywords': keywords})
 
 
 
@@ -1753,14 +1765,15 @@ def post_pins_pinterest(request, project_id):
     schedule_date = data.get('schedule_date', '')
     schedule_time = data.get('schedule_time', '')
 
-    # Convert Date format (YYYY-MM-DD -> MM/DD/YYYY) for Pinterest
-    if schedule_date:
-        try:
-            parts = schedule_date.split('-')
-            if len(parts) == 3:
-                schedule_date = f"{parts[1]}/{parts[2]}/{parts[0]}"
-        except:
-            pass # Keep original if parse fails
+    # Pass raw date format (YYYY-MM-DD from HTML5 input) to automation
+    # The automation service will handle any necessary format conversion
+    # if schedule_date:
+    #     try:
+    #         parts = schedule_date.split('-')
+    #         if len(parts) == 3:
+    #             schedule_date = f"{parts[1]}/{parts[2]}/{parts[0]}"
+    #     except:
+    #         pass
 
     try:
         service = PinterestAutomationService()

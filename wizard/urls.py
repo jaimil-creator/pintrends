@@ -67,5 +67,6 @@ urlpatterns = [
     # Analysis
     path('analysis/', views.AnalysisView.as_view(), name='analysis'),
     path('analysis/fetch/', views.fetch_analysis_data, name='analysis_fetch'),
+    path('analysis/project-keywords/', views.project_keywords_htmx, name='project_keywords_htmx'),
     path('blog/<int:blog_id>/download-images/', views.download_blog_images, name='download_blog_images'),
 ]
