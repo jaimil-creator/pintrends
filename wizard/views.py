@@ -403,21 +403,38 @@ def fetch_suggestions_htmx(request, project_id):
     
     for kw in base_keywords:
         try:
-            suggestions = async_to_sync(scraper.get_suggestions)(kw.keyword)
-            for s in suggestions:
-                Suggestion.objects.get_or_create(
-                    project=project,
-                    base_keyword=kw.keyword,
-                    suggestion=s
-                )
-            results.append({'keyword': kw.keyword, 'count': len(suggestions), 'status': 'success'})
+            scraped_suggestions = async_to_sync(scraper.get_suggestions)(kw.keyword)
+            saved_count = 0
+            for s in scraped_suggestions:
+                try:
+                    # Truncate to max_length to prevent DB errors
+                    clean_suggestion = s.strip()[:255] if s else ''
+                    if not clean_suggestion:
+                        continue
+                    Suggestion.objects.get_or_create(
+                        project=project,
+                        base_keyword=kw.keyword,
+                        suggestion=clean_suggestion
+                    )
+                    saved_count += 1
+                except Exception as save_err:
+                    print(f"Error saving suggestion '{s[:50]}...' for '{kw.keyword}': {save_err}")
+                    continue
+            
+            results.append({
+                'keyword': kw.keyword, 
+                'count': saved_count, 
+                'status': 'success' if saved_count > 0 else 'error'
+            })
+            print(f"Keyword '{kw.keyword}': scraped={len(scraped_suggestions)}, saved={saved_count}")
         except Exception as e:
+            print(f"Scraper error for '{kw.keyword}': {e}")
             results.append({'keyword': kw.keyword, 'count': 0, 'status': 'error', 'error': str(e)})
     
-    suggestions = Suggestion.objects.filter(project=project)
+    all_suggestions = Suggestion.objects.filter(project=project)
     return render(request, 'wizard/partials/suggestion_list.html', {
         'project': project,
-        'suggestions': suggestions,
+        'suggestions': all_suggestions,
         'results': results
     })
 
@@ -844,25 +861,42 @@ def fetch_analysis_data(request):
     
     keyword = request.GET.get('keyword', '').strip()
     if not keyword:
-        return render(request, 'wizard/partials/analysis_results.html', {'error': 'Please enter a keyword.'})
+        return render(request, 'wizard/partials/analysis_results_v2.html', {'error': 'Please enter a keyword.'})
     
     service = PredictionService()
     data = service.fetch_trends_data(keyword)
     
+    # Fetch related terms
+    related_terms_data = service.fetch_related_terms(keyword)
+    related_terms = []
+    print(f"Related terms raw data for '{keyword}': {type(related_terms_data)} - {str(related_terms_data)[:200]}")
+    if related_terms_data and isinstance(related_terms_data, list):
+        for item in related_terms_data:
+            if isinstance(item, dict):
+                term = item.get('term', '').strip()
+            elif isinstance(item, str):
+                term = item.strip()
+            else:
+                continue
+            if term and term.lower() != keyword.lower():
+                related_terms.append(term)
+    print(f"Parsed related terms: {related_terms}")
+    
     if not data:
-        return render(request, 'wizard/partials/analysis_results.html', {'error': 'Could not fetch data for this keyword. It might not be trending or API is unavailable.'})
+        # Still show related terms even if graph data fails
+        if related_terms:
+            return render(request, 'wizard/partials/analysis_results_v2.html', {
+                'keyword': keyword,
+                'display_title': keyword.title(),
+                'error': 'Could not fetch graph data for this keyword.',
+                'related_terms': json.dumps(related_terms),
+            })
+        return render(request, 'wizard/partials/analysis_results_v2.html', {'error': 'Could not fetch data for this keyword. It might not be trending or API is unavailable.'})
         
     # Process data for Chart.js
-    # Assuming data structure from Pinterest Trends API:
-    # counts: {'2023-01-01': 10, '2023-01-08': 15, ...}
-    # legacy code printed keys, let's assume 'counts' is a dict of date: value
-    
-    
     counts = data.get('counts', [])
     
-    # Process list of dicts: [{'date': '2025-02-07', 'count': 30, ...}]
     try:
-        # Sort by date just in case
         sorted_data = sorted(counts, key=lambda x: x.get('date', ''))
         
         labels = []
@@ -871,7 +905,6 @@ def fetch_analysis_data(request):
         
         from datetime import datetime
         
-        # Last known historical value to connect lines
         last_history_idx = -1
         
         upper_bounds = []
@@ -880,19 +913,15 @@ def fetch_analysis_data(request):
         for i, point in enumerate(sorted_data):
             date_str = point.get('date')
             
-            # Use normalized count if available, else raw count
             val = point.get('normalizedCount')
             if val is None:
                 val = point.get('count', 0)
             
-            # Check if this point is a prediction
             is_prediction = point.get('predictedUpperBoundNormalizedCount') is not None
             
-            # Bounds (only for predictions)
             upper = point.get('predictedUpperBoundNormalizedCount')
             lower = point.get('predictedLowerBoundNormalizedCount')
             
-            # Format Date
             if date_str:
                 try:
                     dt = datetime.strptime(date_str, '%Y-%m-%d')
@@ -904,12 +933,12 @@ def fetch_analysis_data(request):
 
             if is_prediction:
                 prediction_values.append(val)
-                historical_values.append(None) # Gap in history
+                historical_values.append(None)
                 upper_bounds.append(upper if upper is not None else val)
                 lower_bounds.append(lower if lower is not None else val)
             else:
                 historical_values.append(val)
-                prediction_values.append(None) # Gap in prediction
+                prediction_values.append(None)
                 upper_bounds.append(None)
                 lower_bounds.append(None)
                 last_history_idx = i
@@ -917,13 +946,10 @@ def fetch_analysis_data(request):
         # Connect the lines
         if last_history_idx != -1 and last_history_idx + 1 < len(prediction_values):
              prediction_values[last_history_idx] = historical_values[last_history_idx]
-             # For bounds, start from the last history point value to avoid gaps
-             # (Assigning raw value as "tight" bound at transition)
              if len(upper_bounds) > last_history_idx:
                  upper_bounds[last_history_idx] = historical_values[last_history_idx]
                  lower_bounds[last_history_idx] = historical_values[last_history_idx]
         
-        # Serialize to JSON to ensure None -> null for JavaScript
         import json
         return render(request, 'wizard/partials/analysis_results_v2.html', {
             'keyword': keyword,
@@ -934,6 +960,7 @@ def fetch_analysis_data(request):
             'upper': json.dumps(upper_bounds),
             'lower': json.dumps(lower_bounds),
             'separation_index': last_history_idx if last_history_idx != -1 else -1,
+            'related_terms': json.dumps(related_terms),
         })
     except Exception as e:
         return render(request, 'wizard/partials/analysis_results_v2.html', {'error': f'Error processing data: {str(e)}'})

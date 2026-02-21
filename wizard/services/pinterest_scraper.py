@@ -127,11 +127,23 @@ class PinterestScraperService:
             suggestions = []
             for i in range(count):
                 try:
-                    text = await results.nth(i).text_content()
+                    # Use inner_text() instead of text_content() — it respects
+                    # visual rendering and separates child elements with newlines,
+                    # whereas text_content() concatenates everything without spaces
+                    text = await results.nth(i).inner_text()
                     if text:
-                        clean_text = text.strip()
-                        if clean_text and len(clean_text) > 2:
-                            suggestions.append(clean_text)
+                        # inner_text() separates visually distinct children with \n
+                        # Split and treat each line as a separate suggestion
+                        parts = text.strip().split('\n')
+                        for part in parts:
+                            clean_text = part.strip()
+                            if clean_text and len(clean_text) > 2:
+                                # Skip garbled concatenated text (e.g. "winterWomen")
+                                # Real suggestions are proper phrases with spaces
+                                # Detect camelCase joins: lowercase followed by uppercase mid-word
+                                if re.search(r'[a-z][A-Z]', clean_text) and ' ' not in clean_text:
+                                    continue
+                                suggestions.append(clean_text)
                 except Exception as e:
                     print(f"Error extracting text from suggestion {i}: {e}")
             

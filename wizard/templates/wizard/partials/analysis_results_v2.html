@@ -9,31 +9,40 @@
         </div>
     </div>
 </div>
-{% else %}
+{% endif %}
+{% if labels %}
 <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up">
-    <!-- Fixed template tag display: using display_title instead of keyword|title -->
     <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-bold text-gray-900">
             Interest over time: <span class="text-pinterest-red">{{ display_title }}</span>
         </h3>
         <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-semibold text-gray-600">Last 12 Months</span>
     </div>
-
     <div class="relative h-[400px] w-full">
         <canvas id="predictionChart"></canvas>
     </div>
-
     <script>
-        // Data passed from Django view
         var labels = {{ labels| safe }};
         var historyData = {{ history| safe }};
         var predictionData = {{ prediction| safe }};
         var upperBounds = {{ upper| safe }};
         var lowerBounds = {{ lower| safe }};
         var separationIndex = {{ separation_index }};
-
-        // Call the global render function
         renderpredictionChart(labels, historyData, predictionData, upperBounds, lowerBounds, separationIndex);
+    </script>
+</div>
+{% endif %}
+{% if related_terms %}
+<div class="mt-6 bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="bi bi-diagram-3 text-pinterest-red text-lg"></i>
+        <h3 class="text-lg font-bold text-gray-900">Related Terms</h3>
+        <span class="ml-auto px-3 py-1 bg-gray-100 rounded-full text-xs font-semibold text-gray-600"
+            id="related-terms-count"></span>
+    </div>
+    <div class="flex flex-wrap gap-2" id="related-terms-container"></div>
+    <script>
+        (function () { var terms = {{ related_terms| safe }}; if (!terms || terms.length === 0) return; var c = document.getElementById('related-terms-container'); document.getElementById('related-terms-count').textContent = terms.length + ' terms'; var u = '{% url "wizard:analysis_fetch" %}'; terms.forEach(function (t) { var b = document.createElement('button'); b.className = 'inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-gray-50 text-gray-800 text-sm font-medium hover:bg-pinterest-red hover:text-white hover:border-pinterest-red transition-all cursor-pointer active:scale-95'; b.textContent = t; b.setAttribute('hx-get', u + '?keyword=' + encodeURIComponent(t)); b.setAttribute('hx-target', '#analysis-results'); b.setAttribute('hx-indicator', '#loading-indicator'); c.appendChild(b); }); if (typeof htmx !== 'undefined') { htmx.process(c); }}) ();
     </script>
 </div>
 {% endif %}

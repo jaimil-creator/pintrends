@@ -46,3 +46,35 @@ class PredictionService:
             current_date -= timedelta(weeks=1)
             
         return None
+
+    def fetch_related_terms(self, keyword):
+        """Fetch related terms from Pinterest Trends API."""
+        def get_last_friday(date):
+            days_behind = (date.weekday() - 4) % 7
+            return date - timedelta(days=days_behind)
+
+        current_date = get_last_friday(datetime.now())
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+
+        from urllib.parse import quote_plus
+        encoded_keyword = quote_plus(keyword)
+        
+        for _ in range(4):
+            end_date_str = current_date.strftime('%Y-%m-%d')
+            url = f"https://trends.pinterest.com/related_terms/?requestTerm={encoded_keyword}&country=US&endDate={end_date_str}&aggregation=2&lookback=365&shouldMock=false"
+            
+            try:
+                resp = requests.get(url, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data:
+                        return data
+            except Exception as e:
+                print(f"Error fetching related terms for date {end_date_str}: {e}")
+            
+            current_date -= timedelta(weeks=1)
+            
+        return None
