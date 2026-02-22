@@ -1882,15 +1882,38 @@ def update_pin_image_htmx(request, pin_id):
         custom_file = request.FILES.get('custom_image')
         
         if custom_file:
-            pin.custom_image = custom_file
-            pin.image_source = 'upload'
-            # We'll update image_url after save to point to the local file URL
-            pin.image_url = "" 
-            pin.save()
-            # Refresh to get the URL
-            if pin.custom_image:
-                pin.image_url = pin.custom_image.url
+            # Upload to S3/R2 instead of saving locally
+            from .services.s3_service import S3Service
+            s3_service = S3Service()
+            
+            try:
+                public_url = s3_service.upload_file(
+                    custom_file, 
+                    custom_file.name, 
+                    content_type=custom_file.content_type
+                )
+                pin.image_url = public_url
+                pin.image_source = 'upload'
+                
+                # Cleanup old local file if it exists
+                if pin.custom_image:
+                    try:
+                        pin.custom_image.delete(save=False)
+                    except:
+                        pass
+                pin.custom_image = None
                 pin.save()
+                print(f"✅ Successfully uploaded custom pin image to R2: {public_url}")
+                
+            except Exception as e:
+                print(f"⚠️ Failed to upload custom image to R2: {e}. Falling back to local storage.")
+                pin.custom_image = custom_file
+                pin.image_source = 'upload'
+                pin.image_url = "" 
+                pin.save()
+                if pin.custom_image:
+                    pin.image_url = pin.custom_image.url
+                    pin.save()
         elif image_url:
             pin.image_url = image_url
             pin.image_source = 'blog'
