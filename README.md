@@ -1,40 +1,44 @@
 # 📌 PinTrends
 
-A high-performance Pinterest trend analysis and content automation ecosystem built with Django. PinTrends empowers content creators to discover high-velocity trends, expand keyword strategies with AI, and generate complete, image-rich blog posts and pins in seconds.
+A high-performance Pinterest trend analysis and content automation ecosystem built with Django. PinTrends empowers content creators to discover high-velocity trends, expand keyword strategies with AI, and generate complete, image-rich blog posts and pins in seconds, with full end-to-end automation to Pinterest.
 
 ## ✨ Features
 
 ### 🔍 Intelligence & Discovery
 - **Stealth Trend Scraping**: Deep integration with Pinterest Trends using headless Playwright browsers for background data mining.
 - **Advanced Filtering**: Narrow down trends by country, interest, age group, and gender.
-- **Predictive Analytics**: Interactive charts showing trend trajectories with confidence bounds to spot "breakout" niches.
+- **Predictive Analytics**: Interactive charts showing trend trajectories with confidence bounds.
 
 ### 🤖 AI Content Engine
-- **Full Blog Generation**: Creates complete blog posts including intro, conclusion, and structured sections using Gemini 1.5 Pro.
+- **Full Blog Generation**: Creates complete blog posts including intro, conclusion, and structured sections using Gemini 2.0 Flash.
 - **Multi-Model Image Pipeline**:
     - **Together AI (Qwen)**: Generates highly descriptive, aesthetic-focused image prompts.
-    - **Fal AI (Nano-Banana)**: High-speed, high-quality fashion and lifestyle image generation.
+    - **Fal AI (FLUX/Nano-Banana)**: High-speed, premium image generation.
 - **Keyword Expansion**: Transforms seed keywords into high-intent long-tail clusters.
 
-### 🖼️ Image Management
-- **Pin Image Studio**: Specialized vertical image generation optimized for Pinterest's 2:3 aspect ratio.
-- **Custom Image Support**: Upload your own assets or regenerate AI images for specific sections.
-- **Batch Export**: Download all blog images in a single optimized ZIP file with one click.
+### 📌 Pinterest Automation
+- **Direct Posting**: Fully automated pin creation including image upload, title, description, and link attribution.
+- **Smart Scheduling**: Built-in scheduler to drip-feed pins at optimal times without an official API.
+- **Board & Tag Management**: Automatic board selection and intelligent tag injection for maximum reach.
+- **Session Persistence**: Robust headless session management to avoid frequent logins.
 
-### 📊 Project Workflow
-- **Workflow Sidebar**: Real-time progress tracking through the project lifecycle (Trends → Suggestions → Expansion → Content → Blog).
-- **Intelligent Resumption**: Smart dashboard allows you to jump back into any project exactly where you left off.
+### 🖼️ Image & Storage
+- **Hybrid Storage**: Full integration with **Cloudflare R2** for scalable, high-speed image hosting.
+- **Pin Image Studio**: Specialized vertical image generation optimized for Pinterest's 2:3 aspect ratio.
+- **Batch Export**: Download all assets in optimized ZIP files or sync them directly to your Pinterest boards.
 
 ## 🛠️ Tech Stack
 
 - **Backend**: Django 5.1 (Python 3.12)
+- **Task Queue**: Django Q2 for background scraping and automation.
 - **Scraping**: Playwright (Headless Chromium)
 - **AI Core**: 
-  - **Content**: Google Gemini 1.5 Pro / Flash
-  - **Prompts**: Together AI (Qwen-2 72B)
+  - **Content**: Google Gemini 2.0 Flash
+  - **Prompts**: Together AI (Qwen-2.5 72B)
   - **Images**: Fal AI (FLUX / Nano-Banana)
 - **Frontend**: HTMX (Dynamic SPA feel), Tailwind CSS, Bootstrap Icons
-- **Data Flow**: `requests` with connection pooling, `ThreadPoolExecutor` for parallel image processing.
+- **Storage**: Cloudflare R2 (S3-compatible API)
+- **Data Flow**: `boto3` for storage, `requests` for APIs, `ThreadPoolExecutor` for parallel tasks.
 
 ## 📦 Installation
 
@@ -59,10 +63,23 @@ A high-performance Pinterest trend analysis and content automation ecosystem bui
    ```env
    SECRET_KEY=...
    DEBUG=True
-   DATABASE_URL=...
+   
+   # Storage (Cloudflare R2)
+   S3_ACCESS_KEY=...
+   S3_SECRET_KEY=...
+   CLOUDFLARE_ACCOUNT_ID=...
+   R2_BUCKET_NAME=...
+   R2_BASE_URL=...
+   
+   # AI Keys
    GEMINI_API_KEY=...
    TOGETHER_API_KEY=...
    FAL_KEY=...
+   
+   # Pinterest Automantion
+   PINTEREST_EMAIL=...
+   PINTEREST_PASSWORD=...
+   PINTEREST_BOARD=...
    ```
 
 3. **Initialize Database**
@@ -78,9 +95,18 @@ A high-performance Pinterest trend analysis and content automation ecosystem bui
 ## 🚀 The PinTrends Workflow
 
 1. **Discovery**: Scrape Pinterest for seasonal or breakout trends.
-2. **Refinement**: Mine suggestions and expand keywords to build a niche-specific clusters.
-3. **Generation**: Click one button to generate a complete blog post with AI images.
-4. **Export**: Serve the content via JSON API or download the images for manual posting.
+2. **Refinement**: Mine suggestions and expand keywords to build niche-specific clusters.
+3. **Generation**: Create high-quality blog posts and Pinterest pins with AI.
+4. **Automation**: Schedule pins directly to your boards via the automation dashboard.
+5. **Sync**: Images are stored in R2 for global accessibility and reliable posting.
+
+## 🚢 Deployment
+
+PinTrends is optimized for containerized deployment:
+
+- **Docker**: use `docker-compose up --build` for local or VPS deployment.
+- **Render.com**: Native support with `render.yaml`.
+- **VPS**: Scripts for automated setup and process management (check `/vps-setup`).
 
 ## 🤝 Contributing
 
