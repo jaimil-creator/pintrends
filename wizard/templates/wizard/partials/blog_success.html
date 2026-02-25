@@ -1,4 +1,14 @@
-<div class="bg-white rounded-2xl shadow-md border-2 border-green-100 p-6 animate-fadeIn">
+<div class="bg-white rounded-2xl shadow-md border-2 border-green-100 p-6 animate-fadeIn relative">
+    <button hx-post="{% url 'wizard:toggle_blog_selection_htmx' blog_post.id %}" hx-target="closest .bg-white"
+        hx-swap="outerHTML"
+        class="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 {% if blog_post.is_selected %}bg-green-500 text-white shadow-md{% else %}bg-gray-100 text-gray-400 hover:bg-gray-200{% endif %}"
+        title="{% if blog_post.is_selected %}Selected{% else %}Add to Blog Setup{% endif %}">
+        {% if blog_post.is_selected %}
+        <i class="bi bi-check-lg text-lg"></i>
+        {% else %}
+        <i class="bi bi-plus-lg text-lg"></i>
+        {% endif %}
+    </button>
     <div class="flex items-start gap-4 mb-4">
         <div class="bg-green-50 rounded-full p-3">
             <i class="bi bi-check-circle-fill text-green-600 text-3xl"></i>

@@ -17,17 +17,24 @@
                 <h5 class="text-xl font-bold text-gray-900">{{ group.grouper }}</h5>
                 <p class="text-sm text-gray-500">{{ group.list|length }} search phrases extracted</p>
             </div>
+            <div class="ml-auto">
+                <form hx-post="{% url 'wizard:add_custom_keyword_htmx' project.id %}"
+                    hx-target="#grid-{{ forloop.counter }}" hx-swap="afterbegin" class="flex items-center gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="base_keyword" value="{{ group.grouper }}">
+                    <input type="text" name="keyword" placeholder="Add custom phrase..."
+                        class="bg-white border border-gray-200 rounded-full px-4 py-1.5 text-sm outline-none focus:ring-2 focus:ring-pinterest-red focus:border-transparent transition-all w-48 focus:w-64">
+                    <button type="submit"
+                        class="bg-gray-900 hover:bg-black text-white p-2 rounded-full transition-colors flex items-center justify-center">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <div class="masonry-grid w-full">
-            <!-- Grid Sizer -->
-            <div class="grid-sizer w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%]"></div>
-            <div class="gutter-sizer w-[2%]"></div>
-
+        <div class="flex flex-col gap-3 w-full" id="grid-{{ forloop.counter }}">
             {% for kw in group.list %}
-            <div class="grid-item w-[48%] sm:w-[31%] md:w-[23.5%] lg:w-[19%] xl:w-[15.5%] mb-4 px-1">
-                {% include 'wizard/partials/keyword_card.html' with kw=kw project=project %}
-            </div>
+            {% include 'wizard/partials/keyword_card.html' with kw=kw project=project %}
             {% endfor %}
         </div>
     </div>

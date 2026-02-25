@@ -31,6 +31,11 @@
             <button onclick="copyJSON()" class="text-gray-500 hover:text-gray-700 font-medium text-sm px-3 py-2">
                 <i class="bi bi-clipboard mr-1"></i> Copy
             </button>
+            <button onclick="saveBlog()" id="save-btn"
+                class="inline-flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white text-sm font-bold rounded-full hover:bg-gray-900 transition-colors shadow-sm">
+                <i class="bi bi-save"></i>
+                Save
+            </button>
             <button onclick="publishBlog()" id="publish-btn"
                 class="inline-flex items-center gap-2 px-6 py-2.5 bg-pinterest-red text-white text-sm font-bold rounded-full hover:bg-[#ad081b] transition-colors shadow-sm">
                 <i class="bi bi-cloud-upload"></i>
@@ -144,6 +149,15 @@
     #preview-container .blog-linear-item img:hover {
         transform: translateY(-2px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Main Preview Thumbnail */
+    #preview-container .preview-thumbnail {
+        width: 100%;
+        border-radius: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: block;
     }
 
     #preview-container .blog-linear-item p {
@@ -313,6 +327,12 @@
 
         // --- 1. Header Section ---
         html += `<div class="blog-header-section">`;
+
+        // Main Thumbnail
+        if (data.thumbnail_url) {
+            html += `<img src="${data.thumbnail_url}" alt="${data.alt || data.title}" class="preview-thumbnail">`;
+        }
+
         if (data.title) html += `<h1>${data.title}</h1>`;
 
         if (data.description) {
@@ -375,6 +395,48 @@
         }
 
         container.innerHTML = html;
+    }
+
+    async function saveBlog() {
+        const btn = document.getElementById('save-btn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="bi bi-hourglass-split animate-spin"></i> Saving...`;
+
+        try {
+            const jsonContent = editor.getValue();
+            // Validate JSON
+            const parsedJson = JSON.parse(jsonContent);
+            const slug = document.getElementById('url-slug').value.trim();
+
+            const response = await fetch("{% url 'wizard:save_blog_json_api' project.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    blog_id: blogId,
+                    json_content: parsedJson,
+                    slug: slug
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast("✅ Blog saved successfully!", "success");
+            } else {
+                showToast("❌ Save Failed: " + (result.error || "Unknown error"), "error");
+            }
+
+        } catch (e) {
+            showToast("❌ Error: " + e.message, "error");
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 
     async function publishBlog() {

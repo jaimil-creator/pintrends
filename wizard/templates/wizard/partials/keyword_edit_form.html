@@ -1,0 +1,26 @@
+<div class="bg-white rounded-2xl p-4 border-2 border-blue-400 animate-fadeIn flex items-center gap-6"
+    id="keyword-card-{{ kw.id }}">
+    <form hx-post="{% url 'wizard:update_keyword_htmx' project.id kw.id %}" hx-target="#keyword-card-{{ kw.id }}"
+        hx-swap="outerHTML" class="flex-1 flex items-center gap-6">
+        {% csrf_token %}
+
+        <!-- Keyword Input -->
+        <div class="flex-1">
+            <input type="text" name="keyword" value="{{ kw.keyword }}"
+                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none">
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex gap-2 shrink-0">
+            <button type="submit"
+                class="h-10 px-6 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-colors">
+                Save
+            </button>
+            <button type="button" hx-get="{% url 'wizard:toggle_expanded_keyword' project.id kw.id %}?cancel=1"
+                hx-target="#keyword-card-{{ kw.id }}" hx-swap="outerHTML"
+                class="h-10 px-4 bg-gray-100 text-gray-600 text-xs font-bold rounded-xl hover:bg-gray-200 transition-colors">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>

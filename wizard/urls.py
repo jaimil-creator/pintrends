@@ -30,6 +30,9 @@ urlpatterns = [
     path('<int:project_id>/expand/', views.ExpansionView.as_view(), name='expansion'),
     path('<int:project_id>/expand/ai/', views.expand_keywords_htmx, name='expand_keywords_htmx'),
     path('<int:project_id>/expand/toggle/<int:keyword_id>/', views.toggle_expanded_keyword_htmx, name='toggle_expanded_keyword'),
+    path('<int:project_id>/expand/add-custom/', views.add_custom_keyword_htmx, name='add_custom_keyword_htmx'),
+    path('<int:project_id>/expand/edit/<int:keyword_id>/', views.edit_keyword_htmx, name='edit_keyword_htmx'),
+    path('<int:project_id>/expand/update/<int:keyword_id>/', views.update_keyword_htmx, name='update_keyword_htmx'),
     
     # Step 5: Content Generation
     path('<int:project_id>/content/', views.ContentGenView.as_view(), name='content_gen'),
@@ -54,11 +57,14 @@ urlpatterns = [
     path('blog/<int:blog_id>/update/', views.blog_update, name='blog_update'),
     path('blog/<int:blog_id>/export/json/', views.export_blog_json, name='export_blog_json'),
     path('blog/<int:blog_id>/toggle-selection/', views.toggle_blog_selection_htmx, name='toggle_blog_selection_htmx'),
+    path('<int:project_id>/blog-stats/', views.get_blog_stats_htmx, name='refresh_blog_stats'),
+    path('article/<int:article_id>/card/', views.get_article_card_htmx, name='refresh_article_card'),
     path('<int:project_id>/project-images/', views.get_project_images_htmx, name='get_project_images_htmx'),
     path('pin/<int:pin_id>/update-image/', views.update_pin_image_htmx, name='update_pin_image_htmx'),
     
     # Blog Setup & Pin Setup (Project Sidebar)
     path('<int:project_id>/blog-setup/', views.BlogSetupView.as_view(), name='blog_setup'),
+    path('<int:project_id>/blog/save-json/', views.save_blog_json_api, name='save_blog_json_api'),
     path('<int:project_id>/blog/publish/', views.publish_blog_api, name='publish_blog_api'),
     path('<int:project_id>/pin-setup/', views.PinSetupView.as_view(), name='pin_setup'),
     path('<int:project_id>/pin-setup/generate-images/', views.generate_pin_images, name='generate_pin_images'),

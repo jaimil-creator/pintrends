@@ -531,12 +531,63 @@ def expand_keywords_htmx(request, project_id):
         return render(request, 'wizard/partials/error.html', {'error': str(e)})
 
 def toggle_expanded_keyword_htmx(request, project_id, keyword_id):
-    """HTMX endpoint to toggle selection of an expanded keyword."""
+    """HTMX endpoint to toggle selection of an expanded keyword or return card (cancel)."""
     kw = get_object_or_404(ExpandedKeyword, pk=keyword_id, project_id=project_id)
-    kw.selected = not kw.selected
-    kw.save()
+    
+    if 'cancel' not in request.GET:
+        kw.selected = not kw.selected
+        kw.save()
     
     # Return updated card
+    return render(request, 'wizard/partials/keyword_card.html', {
+        'kw': kw,
+        'project': kw.project
+    })
+
+@require_POST
+def add_custom_keyword_htmx(request, project_id):
+    """HTMX endpoint to add a custom keyword."""
+    project = get_object_or_404(Project, pk=project_id)
+    keyword_text = request.POST.get('keyword', '').strip()
+    base_keyword = request.POST.get('base_keyword', 'Custom')
+    
+    if keyword_text:
+        kw = ExpandedKeyword.objects.create(
+            project=project,
+            base_keyword=base_keyword,
+            keyword=keyword_text,
+            score=0,  # Custom keywords have 0 score to indicate no AI potential
+            selected=True
+        )
+        
+        # Return the new card (not wrapped in grid-item since we use flex-col list)
+        return render(request, 'wizard/partials/keyword_card.html', {
+            'kw': kw,
+            'project': project
+        })
+    
+    return HttpResponse("", status=204)
+
+def edit_keyword_htmx(request, project_id, keyword_id):
+    """HTMX endpoint to return the edit form for a keyword."""
+    kw = get_object_or_404(ExpandedKeyword, pk=keyword_id, project_id=project_id)
+    return render(request, 'wizard/partials/keyword_edit_form.html', {
+        'kw': kw,
+        'project': kw.project
+    })
+
+@require_POST
+def update_keyword_htmx(request, project_id, keyword_id):
+    """HTMX endpoint to update a keyword's details (text only)."""
+    kw = get_object_or_404(ExpandedKeyword, pk=keyword_id, project_id=project_id)
+    
+    keyword_text = request.POST.get('keyword', '').strip()
+    
+    if keyword_text:
+        kw.keyword = keyword_text
+        kw.save()
+    
+    # Return updated card (not wrapped since target is the card itself)
     return render(request, 'wizard/partials/keyword_card.html', {
         'kw': kw,
         'project': kw.project
@@ -1124,11 +1175,19 @@ def generate_blog_htmx(request, article_id):
         
         print(f"✓ Blog generation completed for: {article.title}")
         
-        # Return success partial
-        return render(request, 'wizard/partials/blog_success.html', {
+        # Return success partial with triggers to refresh stats and the article card
+        response = render(request, 'wizard/partials/blog_success.html', {
             'blog_post': blog_post,
             'project': project
         })
+        
+        # Add HTMX triggers as JSON-serialized dict
+        triggers = {
+            "refreshStats": "",
+            f"refreshArticle-{article.id}": ""
+        }
+        response['HX-Trigger'] = json_module.dumps(triggers)
+        return response
         
     except Exception as e:
         print(f"✗ Blog generation failed: {e}")
@@ -1656,6 +1715,94 @@ def publish_blog_api(request, project_id):
         return JsonResponse({'error': 'Invalid JSON body'}, status=400)
     except requests.exceptions.RequestException as e:
         return JsonResponse({'error': f'Failed to connect to API: {str(e)}'}, status=502)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_blog_stats_htmx(request, project_id):
+    """HTMX endpoint - Return updated blog generation stats."""
+    project = get_object_or_404(Project, pk=project_id)
+    return render(request, 'wizard/partials/blog_stats.html', {
+        'project': project,
+        'article_ideas': project.article_ideas.all(),
+        'blog_posts': project.blog_posts.all()
+    })
+
+def get_article_card_htmx(request, article_id):
+    """HTMX endpoint - Return updated article idea card."""
+    article = get_object_or_404(ArticleIdea, pk=article_id)
+    return render(request, 'wizard/partials/article_card.html', {
+        'article': article
+    })
+
+@csrf_exempt
+@require_POST
+def save_blog_json_api(request, project_id):
+    """API endpoint to save edited blog JSON back to the database."""
+    try:
+        data = json.loads(request.body)
+        blog_id = data.get('blog_id')
+        json_content = data.get('json_content')
+        slug = data.get('slug')
+        
+        if not blog_id or not json_content:
+            return JsonResponse({'error': 'Blog ID and content are required'}, status=400)
+        
+        blog_post = get_object_or_404(BlogPost, pk=blog_id, project_id=project_id)
+        
+        # Parse the JSON content
+        try:
+            if isinstance(json_content, str):
+                blog_data = json.loads(json_content)
+            else:
+                blog_data = json_content
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON content'}, status=400)
+            
+        # Update Blog Post fields from JSON
+        blog_post.topic = blog_data.get('title', blog_post.topic)
+        blog_post.intro = blog_data.get('description', blog_post.intro)
+        if isinstance(blog_post.intro, list):
+            blog_post.intro = "\n\n".join(blog_post.intro)
+            
+        blog_post.conclusion = blog_data.get('conclusion', blog_post.conclusion)
+        if isinstance(blog_post.conclusion, list):
+            blog_post.conclusion = "\n\n".join(blog_post.conclusion)
+            
+        if slug:
+            blog_post.slug = slug
+            
+        blog_post.structured_content = blog_data
+        blog_post.save()
+        
+        # Update or Create Sections
+        features = blog_data.get('features', [])
+        for index, feature in enumerate(features):
+            title = feature.get('title', '')
+            description = feature.get('description', '')
+            if isinstance(description, list):
+                description = "\n\n".join(description)
+            image_url = feature.get('image_url', '')
+            
+            # Update existing section or create new one based on order
+            section, created = BlogSection.objects.update_or_create(
+                blog_post=blog_post,
+                order=index + 1,
+                defaults={
+                    'title': title,
+                    'description': description,
+                    'image_url': image_url
+                }
+            )
+            
+        # Clean up any extra sections if features list got shorter
+        BlogSection.objects.filter(blog_post=blog_post, order__gt=len(features)).delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Blog saved successfully',
+            'blog_id': blog_post.id
+        })
+        
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

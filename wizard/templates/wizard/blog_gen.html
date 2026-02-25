@@ -14,27 +14,7 @@
     </div>
 
     <!-- Stats -->
-    <div class="flex gap-8 mb-8 justify-center md:justify-start">
-        <div class="flex items-center gap-3">
-            <div class="bg-gray-100 rounded-full w-14 h-14 flex items-center justify-center">
-                <span class="text-xl font-bold">{{ article_ideas|length }}</span>
-            </div>
-            <div>
-                <h6 class="mb-0 font-bold text-gray-900">Article Ideas</h6>
-                <small class="text-gray-500">Available to generate</small>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-3">
-            <div class="bg-green-50 rounded-full w-14 h-14 flex items-center justify-center border border-green-100">
-                <span class="text-xl font-bold text-green-700">{{ blog_posts|length }}</span>
-            </div>
-            <div>
-                <h6 class="mb-0 font-bold text-gray-900">Generated Blogs</h6>
-                <small class="text-gray-500">Complete with images</small>
-            </div>
-        </div>
-    </div>
+    {% include 'wizard/partials/blog_stats.html' %}
 
     <!-- Info Card -->
     <div class="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-8">
@@ -75,41 +55,7 @@
         {% if article_ideas %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for article in article_ideas %}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div class="mb-4">
-                    <h4 class="font-bold text-gray-900 text-lg mb-2">{{ article.title }}</h4>
-                    {% if article.hook %}
-                    <p class="text-sm text-gray-600">{{ article.hook }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="flex items-center justify-between gap-3 pt-4 border-t border-gray-100">
-                    <span class="text-xs text-gray-500 truncate min-w-0">
-                        <i class="bi bi-tag"></i> {{ article.expanded_keyword.keyword }}
-                    </span>
-
-                    {% if article.blog_posts.exists %}
-                    <span class="text-green-600 text-xs font-medium whitespace-nowrap shrink-0">
-                        <i class="bi bi-check-circle-fill"></i> Generated
-                    </span>
-                    {% else %}
-                    <button hx-post="{% url 'wizard:generate_blog_htmx' article.id %}" hx-target="#blog-results"
-                        hx-swap="afterbegin" hx-indicator="#loading-indicator-{{ article.id }}"
-                        class="bg-pinterest-red hover:bg-[#ad081b] text-white font-semibold py-1.5 px-3 rounded-full text-xs transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0">
-                        <i class="bi bi-stars text-[10px]"></i> Generate
-                    </button>
-                    {% endif %}
-                </div>
-
-                <!-- Loading indicator for this card -->
-                <div id="loading-indicator-{{ article.id }}" class="htmx-indicator mt-4">
-                    <div class="flex items-center justify-center gap-3">
-                        <div class="w-6 h-6 border-3 border-gray-200 border-t-pinterest-red rounded-full animate-spin">
-                        </div>
-                        <span class="text-sm text-gray-600 font-medium">Generating blog...</span>
-                    </div>
-                </div>
-            </div>
+            {% include 'wizard/partials/article_card.html' with article=article %}
             {% endfor %}
         </div>
         {% else %}

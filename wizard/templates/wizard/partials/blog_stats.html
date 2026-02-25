@@ -1,0 +1,22 @@
+<div class="flex gap-8 mb-8 justify-center md:justify-start" id="blog-stats"
+    hx-get="{% url 'wizard:refresh_blog_stats' project.id %}" hx-trigger="refreshStats from:body">
+    <div class="flex items-center gap-3">
+        <div class="bg-gray-100 rounded-full w-14 h-14 flex items-center justify-center">
+            <span class="text-xl font-bold">{{ article_ideas|length }}</span>
+        </div>
+        <div>
+            <h6 class="mb-0 font-bold text-gray-900">Article Ideas</h6>
+            <small class="text-gray-500">Available to generate</small>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <div class="bg-green-50 rounded-full w-14 h-14 flex items-center justify-center border border-green-100">
+            <span class="text-xl font-bold text-green-700">{{ blog_posts|length }}</span>
+        </div>
+        <div>
+            <h6 class="mb-0 font-bold text-gray-900">Generated Blogs</h6>
+            <small class="text-gray-500">Complete with images</small>
+        </div>
+    </div>
+</div>
